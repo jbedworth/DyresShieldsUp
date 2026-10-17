@@ -62,8 +62,10 @@ Beta, for the Forever beta client 1.60.1 (Interface 16001). SUF keeps working
 on later beta builds; if a client update removes an API it needs, it says so
 in chat and the display stays off.
 
-**Verified in client:** Shields Up Forever loads and works on a Paladin.
-With Mage Tools Forever and Warlock Tools Forever, which run this same shield
+**Verified in client:** Shields Up Forever loads and works on a Paladin, and
+Forever uses Classic's spell IDs for the Paladin bubbles (Divine Shield,
+Divine Protection, Blessing of Protection), which draw the gold innermost
+crescent. With Mage Tools Forever and Warlock Tools Forever, which run this same shield
 display: the crescent tracks the absorb total and its number, the icon row
 shows each shield up, Mana Shield's inner crescent drains with time and
 empties as the buff ends, and Forever uses Classic's spell IDs for Mana
@@ -71,8 +73,7 @@ Shield, Fire Ward, and Power Word: Shield (a Priest's shield on a Mage showed
 correctly).
 
 **Not yet verified in client:** a Priest casting Power Word: Shield on
-themself, Paladin bubble IDs (Divine Shield, Divine Protection, Blessing of
-Protection), Warlock shields (Shadow Ward, Sacrifice), the break sound, the
+themself, Warlock shields (Shadow Ward, Sacrifice), the break sound, the
 ring dropping at zero absorb in combat, and only one ring showing with MTF or
 WTF also installed. [TESTING.md](TESTING.md) has the checklist.
 

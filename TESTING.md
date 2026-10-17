@@ -39,15 +39,19 @@ from Mage Tools Forever); CI uses ubuntu-24.04's `lua5.1` package and native
 - AuraContainer `includeSpellIDs` is a set, `{[spellID] = true}`
   (Blizzard_CustomAuraContainer.lua: "Map of permitted spell IDs").
 
-## Found in client with MTF and WTF
+## Found in client
 
-Shield.lua is byte-identical in all three AddOns, so these carry over:
+With SUF, MTF, and WTF; Shield.lua is byte-identical in all three, so these
+carry over:
 
 - A list in `includeSpellIDs` matched nothing; the set shows the icons.
 - Forever's shield buffs carry Classic IDs: Mana Shield 1463, Fire Ward 543,
   and Power Word: Shield (a Priest's shield on a Mage showed in its color).
   Fire Ward's aura points matched `UnitGetTotalAbsorbs`; Mana Shield's buff
   has no points and is not in the total.
+- SUF on a Paladin: Forever's bubbles carry Classic IDs (Divine Shield 642,
+  Divine Protection 498, Blessing of Protection 1022) and draw the gold
+  innermost crescent.
 - The AuraContainer icons' `IsShown` is secret to AddOn code, so each shield
   has a fixed spot in the row.
 - Own cast events stay readable in combat; aura APIs error in combat for
@@ -55,12 +59,10 @@ Shield.lua is byte-identical in all three AddOns, so these carry over:
 
 ### Open client questions
 
-1. Paladin bubble IDs (Divine Shield 642, Divine Protection 498, Blessing of
-   Protection 1022): Classic's, unchecked on Forever.
-2. Whether `SetAlpha` with the secret absorb hides the crescent at 0 in
+1. Whether `SetAlpha` with the secret absorb hides the crescent at 0 in
    combat.
-3. Whether the break sound's trigger Removed fires for each shield.
-4. Which order the client loads MTF, SUF, and WTF in, which decides the ring's
+2. Whether the break sound's trigger Removed fires for each shield.
+3. Which order the client loads MTF, SUF, and WTF in, which decides the ring's
    owner on equal versions.
 
 ## In-client checklist
