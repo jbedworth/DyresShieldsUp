@@ -4,6 +4,10 @@ Player-facing changes for each Shields Up Forever release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 0.2.1-beta
+
+- Shield display: the outer crescent is centered with the inner ones again; since the last update it was drawn lower and taller than them.
+
 ## 0.2.0-beta
 
 - Renamed from Shields Up Forever to **Dyre's Shields Up**. The command is now `/dsu` (`/shieldsup` still works), and the AddOn folder is `DyresShieldsUp`. Delete the old `ShieldsUpForever` folder; your settings start fresh, since the game keeps them by folder.
