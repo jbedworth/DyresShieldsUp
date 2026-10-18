@@ -1,8 +1,9 @@
-# Shields Up Forever
+# Dyre's Shields Up
 
 The shield display from Mage Tools Forever, on its own, for any class in World
-of Warcraft: Forever (beta). Settings are in **Options → AddOns → Shields Up
-Forever**, or type `/suf`. They are saved per character.
+of Warcraft: Forever (beta). Settings are in **Options → AddOns → Dyre's
+Shields Up**, or type `/dsu`. They are saved per character. Formerly Shields
+Up Forever (`/suf`).
 
 ## Shield display
 
@@ -32,37 +33,37 @@ shield is used up.
 - **Display size** shrinks or grows it (50-150%). The number can be turned
   off, and a sound can play when a shield ends or breaks, also in combat.
 - Locked (the default), it never blocks clicks on the world. **Unlock to move
-  it** (or `/suf unlock`) shows a full sample of every part to drag; `/suf
-  lock` locks it again and `/suf reset` puts it back.
+  it** (or `/dsu unlock`) shows a full sample of every part to drag; `/dsu
+  lock` locks it again and `/dsu reset` puts it back.
 
 ## With Mage Tools Forever or Warlock Tools Forever
 
 Both ship the same display. Installed together, you still see one ring: the
 newest version among the AddOns running on your character draws it, and on
 the same version the first AddOn loaded does (the game loads them in folder
-order, so Mage Tools Forever before Shields Up Forever before Warlock Tools
+order, so Dyre's Shields Up before Mage Tools Forever before Warlock Tools
 Forever). MTF runs only on a Mage and WTF only on a Warlock, so on any other
-class SUF draws it. When another AddOn draws it, SUF says so once at login,
+class DSU draws it. When another AddOn draws it, DSU says so once at login,
 and its settings and commands point you to that AddOn's settings.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `/suf`, `/suf options` | Opens the settings |
-| `/suf unlock`, `/suf lock` | Unlocks the display to drag it, and locks it again |
-| `/suf reset` | Moves the display back to its default place |
-| `/suf debug_shield` | Diagnostics: the absorb APIs, which AddOn draws the ring, each shield, and the icon row |
+| `/dsu`, `/dsu options` | Opens the settings |
+| `/dsu unlock`, `/dsu lock` | Unlocks the display to drag it, and locks it again |
+| `/dsu reset` | Moves the display back to its default place |
+| `/dsu debug_shield` | Diagnostics: the absorb APIs, which AddOn draws the ring, each shield, and the icon row |
 
-`/shieldsup` works the same, in case another AddOn uses `/suf`.
+`/shieldsup` works the same, in case another AddOn uses `/dsu`.
 
 ## Compatibility
 
-Beta, for the Forever beta client 1.60.1 (Interface 16001). SUF keeps working
+Beta, for the Forever beta client 1.60.1 (Interface 16001). DSU keeps working
 on later beta builds; if a client update removes an API it needs, it says so
 in chat and the display stays off.
 
-**Verified in client:** Shields Up Forever loads and works on a Paladin, and
+**Verified in client:** Dyre's Shields Up loads and works on a Paladin, and
 Forever uses Classic's spell IDs for the Paladin bubbles (Divine Shield,
 Divine Protection, Blessing of Protection), which draw the gold innermost
 crescent. With Mage Tools Forever and Warlock Tools Forever, which run this same shield

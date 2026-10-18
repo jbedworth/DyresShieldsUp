@@ -1,4 +1,4 @@
-# Shields Up Forever logo
+# Dyre's Shields Up logo
 
 Original vector artwork: a gold-edged heater shield with a deep blue face, a
 radiant gold star and orb at its heart, beside a segmented crescent of shield
@@ -8,14 +8,14 @@ colors with the Mage Tools Forever, Warlock Tools Forever, Weapon Sets
 Forever, and Weapon Skills Forever logos. The design has no font or
 external-image dependencies.
 
-- `shields-up-forever-logo.svg`: editable, resolution-independent source.
-- `shields-up-forever-logo.png`: 1024 x 1024 PNG master.
-- `shields-up-forever-logo-512.png`: 512 x 512 PNG for square project images.
+- `dyres-shields-up-logo.svg`: editable, resolution-independent source.
+- `dyres-shields-up-logo.png`: 1024 x 1024 PNG master.
+- `dyres-shields-up-logo-512.png`: 512 x 512 PNG for square project images.
 
 The PNGs are rendered from the SVG with headless Chrome, for example:
 
 ```sh
-chrome --headless=new --hide-scrollbars --window-size=1024,1024 --force-device-scale-factor=0.5 --screenshot=shields-up-forever-logo-512.png shields-up-forever-logo.svg
+chrome --headless=new --hide-scrollbars --window-size=1024,1024 --force-device-scale-factor=0.5 --screenshot=dyres-shields-up-logo-512.png dyres-shields-up-logo.svg
 ```
 
 Use these files for project pages and distribution branding. Keep this directory

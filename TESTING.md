@@ -41,7 +41,7 @@ from Mage Tools Forever); CI uses ubuntu-24.04's `lua5.1` package and native
 
 ## Found in client
 
-With SUF, MTF, and WTF; Shield.lua is byte-identical in all three, so these
+With DSU, MTF, and WTF; Shield.lua is byte-identical in all three, so these
 carry over:
 
 - A list in `includeSpellIDs` matched nothing; the set shows the icons.
@@ -49,7 +49,7 @@ carry over:
   and Power Word: Shield (a Priest's shield on a Mage showed in its color).
   Fire Ward's aura points matched `UnitGetTotalAbsorbs`; Mana Shield's buff
   has no points and is not in the total.
-- SUF on a Paladin: Forever's bubbles carry Classic IDs (Divine Shield 642,
+- DSU on a Paladin: Forever's bubbles carry Classic IDs (Divine Shield 642,
   Divine Protection 498, Blessing of Protection 1022) and draw the gold
   innermost crescent.
 - The AuraContainer icons' `IsShown` is secret to AddOn code, so each shield
@@ -69,31 +69,31 @@ carry over:
 1. Whether `SetAlpha` with the secret absorb hides the crescent at 0 in
    combat.
 2. Whether the break sound plays when a shield breaks from damage in combat.
-3. Which order the client loads MTF, SUF, and WTF in, which decides the ring's
+3. Which order the client loads MTF, DSU, and WTF in, which decides the ring's
    owner on equal versions.
 
 ## In-client checklist
 
-- [ ] `/suf` opens Options > AddOns > Shields Up Forever; the login banner
+- [ ] `/dsu` opens Options > AddOns > Dyre's Shields Up; the login banner
       shows the version and Dyre, on any class.
 - [ ] As a Priest: Power Word: Shield on yourself shows the white crescent,
       empties as you take damage, also in combat, and drops the moment it is
-      used up; its icon shows under the number; `/suf debug_shield` names it.
+      used up; its icon shows under the number; `/dsu debug_shield` names it.
 - [ ] As a Warrior or Rogue: another player's Power Word: Shield shows; any
       other absorb shows in gold for 30 s.
 - [ ] A Paladin's Blessing of Protection on you draws the gold innermost arc
       and its icon, also in combat; as a Paladin, Divine Shield and Divine
-      Protection do too. `/suf debug_shield` confirms the IDs.
+      Protection do too. `/dsu debug_shield` confirms the IDs.
 - [ ] As a Paladin with Seal of Righteousness, its 10-20 point shield never
       shows the crescent, in or out of combat; a Power Word: Shield on you
-      still does. `/suf debug_shield` shows `minimumAbsorb`.
+      still does. `/dsu debug_shield` shows `minimumAbsorb`.
 - [ ] Settings: the switches, number, size slider, and break sound work;
-      "Unlock to move it" and `/suf unlock` show the full sample to drag;
-      unticking or `/suf lock` locks it, and the switch and commands stay in
-      step; `/suf reset` puts it back.
+      "Unlock to move it" and `/dsu unlock` show the full sample to drag;
+      unticking or `/dsu lock` locks it, and the switch and commands stay in
+      step; `/dsu reset` puts it back.
 - [ ] Locked, clicks on the world pass through the display.
-- [ ] With Mage Tools Forever on a Mage: one ring shows (MTF's), SUF says once
-      that MTF shows it, and `/suf unlock` points to MTF's settings. On a
-      Priest with MTF installed, SUF's ring shows.
+- [ ] With Mage Tools Forever on a Mage: one ring shows (MTF's), DSU says once
+      that MTF shows it, and `/dsu unlock` points to MTF's settings. On a
+      Priest with MTF installed, DSU's ring shows.
 - [ ] With Warlock Tools Forever on a Warlock: one ring shows, and the other
       AddOn says which one draws it.

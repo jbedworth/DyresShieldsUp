@@ -42,12 +42,12 @@ class CurseForgeTests(unittest.TestCase):
         source = self.base / "source"
         source.mkdir()
         version = "0.1.0-beta"
-        (source / "ShieldsUpForever.toc").write_bytes(
+        (source / "DyresShieldsUp.toc").write_bytes(
             (f"## Interface: 16001\n## Version: {version}\n"
              + "\n".join(builder.RUNTIME_FILES) + "\n").encode("utf-8"))
         (source / "LICENSE").write_bytes(builder.MIT_NOTICE.encode("utf-8"))
         for name in builder.RUNTIME_FILES:
-            (source / name).write_bytes(b"local addonName, SUF = ...\n")
+            (source / name).write_bytes(b"local addonName, DSU = ...\n")
         for name in builder.MEDIA_FILES:
             (source / name).parent.mkdir(parents=True, exist_ok=True)
             (source / name).write_bytes((ROOT / name).read_bytes())
@@ -97,11 +97,11 @@ class CurseForgeTests(unittest.TestCase):
         self.opener.open.assert_not_called()
 
     def test_wowup_metadata_names_the_forever_archive(self):
-        self.assertEqual(self.archive.name, "ShieldsUpForever-0.1.0-beta-forever.zip")
+        self.assertEqual(self.archive.name, "DyresShieldsUp-0.1.0-beta-forever.zip")
         metadata = json.loads((self.dist / "release.json").read_text(encoding="utf-8"))
         self.assertEqual(metadata, {"releases": [{
-            "name": "ShieldsUpForever", "version": "0.1.0-beta",
-            "filename": "ShieldsUpForever-0.1.0-beta-forever.zip", "nolib": False,
+            "name": "DyresShieldsUp", "version": "0.1.0-beta",
+            "filename": "DyresShieldsUp-0.1.0-beta-forever.zip", "nolib": False,
             "metadata": [{"flavor": "forever", "interface": 16001}],
         }]})
 
@@ -111,7 +111,7 @@ class CurseForgeTests(unittest.TestCase):
         release = original["releases"][0]
         variants = (
             None, "[]", {"releases": []},
-            {"releases": [dict(release, filename="ShieldsUpForever-0.1.0-beta.zip")]},
+            {"releases": [dict(release, filename="DyresShieldsUp-0.1.0-beta.zip")]},
             {"releases": [dict(release, nolib=0)]},
             {"releases": [dict(release, metadata=[{"flavor": "classic", "interface": 16001}])]},
             {"releases": [dict(release, version="0.2.0-beta")]},

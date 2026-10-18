@@ -26,15 +26,15 @@ flowchart TD
 
 ## Package contract
 
-The filename follows the TOC version: `ShieldsUpForever-<version>-forever.zip`.
+The filename follows the TOC version: `DyresShieldsUp-<version>-forever.zip`.
 The `-forever` suffix is one of the two ways WowUp 2.24.0 identifies a GitHub
 asset for a Forever install (`/[-_](forever|camelot)\.zip$/i` in
 `github-addon-provider.ts`); the other is the `release.json` asset described below.
 The archive must contain exactly these files under one top-level folder:
 
 ```text
-ShieldsUpForever/
-    ShieldsUpForever.toc
+DyresShieldsUp/
+    DyresShieldsUp.toc
     Commands.lua
     Core.lua
     Shield.lua
@@ -61,7 +61,7 @@ agent guidance, generated logs, and all credentials/player data.
 
 Use an explicit file allowlist. Do not ZIP the checkout and maintain a growing
 list of exclusions. Keep `LICENSE` in the package, but do not load it in the TOC.
-SUF ships three textures, `Textures/ShieldArc.tga`, `ShieldArcInner.tga`, and
+DSU ships three textures, `Textures/ShieldArc.tga`, `ShieldArcInner.tga`, and
 `ShieldArcInnermost.tga`, the shield display's crescents, built by `scripts/build_arc.py`. The builder
 requires each to be an uncompressed 32-bit square TGA with power-of-two sides.
 
@@ -97,7 +97,7 @@ the local Windows `.tools/` binaries.
 `scripts/build_release.py` uses the nine-file allowlist, validates the
 TOC/version/license and actual archive, and writes to `dist/`:
 
-- `ShieldsUpForever-<version>-forever.zip`;
+- `DyresShieldsUp-<version>-forever.zip`;
 - the adjacent `.zip.sha256` checksum;
 - `release-manifest.json`;
 - `release-notes.md`: the `CHANGELOG.md` section for the version, then the
@@ -379,7 +379,7 @@ BigWigsMods/packager was evaluated as an alternative (reviewed upstream commit
 `release.json` asset with client metadata. Adopting it would require controls
 for this project:
 
-- `.pkgmeta` can set `package-as: ShieldsUpForever` and exclude development
+- `.pkgmeta` can set `package-as: DyresShieldsUp` and exclude development
   material. Exclusions alone are not our package allowlist; validate the ZIP.
 - Its default changelog generation creates `CHANGELOG.md` inside the package,
   violating the nine-file contract, unless configured otherwise.

@@ -19,7 +19,7 @@ import zlib
 from pathlib import Path
 
 
-ADDON = "ShieldsUpForever"
+ADDON = "DyresShieldsUp"
 RUNTIME_FILES = ("Commands.lua", "Core.lua", "Shield.lua", "Options.lua")
 TEXT_FILES = (ADDON + ".toc",) + RUNTIME_FILES + ("LICENSE",)
 # Runtime textures shipped in the package: the shield display's crescents,
@@ -301,7 +301,7 @@ def changelog_section(text, version):
 
 
 def _release_notes(version, changes):
-    return f'''# Shields Up Forever {version}
+    return f'''# Dyre's Shields Up {version}
 
 ## Changes
 
@@ -310,15 +310,15 @@ def _release_notes(version, changes):
 ## Notes
 
 - Beta for WoW: Forever. Built for Forever beta {GAME_VERSION}, build {TARGET_BUILD},
-  Interface {INTERFACE}. SUF runs on later beta builds while the client provides
+  Interface {INTERFACE}. DSU runs on later beta builds while the client provides
   the APIs it needs, and says so in chat if they are missing.
 - Shield display, for any class: a crescent that fills with your remaining
   shield (Power Word: Shield, Ice Barrier, a ward, or one another player puts
   on you), also in combat, and drops away when it is used up. An icon row
   shows which shields are up.
 - With Mage Tools Forever or Warlock Tools Forever also running, only one
-  display shows; SUF says which AddOn draws it.
-- Settings in Options > AddOns, or `/suf options`.
+  display shows; DSU says which AddOn draws it.
+- Settings in Options > AddOns, or `/dsu options`.
 '''
 
 

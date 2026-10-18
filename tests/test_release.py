@@ -36,12 +36,12 @@ class ReleaseTests(unittest.TestCase):
         self.base = Path(self.temp.name)
         self.source = self.base / "source"
         self.source.mkdir()
-        for name in ("ShieldsUpForever.toc", "LICENSE"):
+        for name in ("DyresShieldsUp.toc", "LICENSE"):
             # Git may check these templates out as CRLF on Windows. Fixture-only
             # conversion gives valid LF input without changing the real sources.
             (self.source / name).write_bytes((ROOT / name).read_bytes().replace(b"\r\n", b"\n"))
         for name in builder.RUNTIME_FILES:
-            (self.source / name).write_bytes(b"local addonName, SUF = ...\n")
+            (self.source / name).write_bytes(b"local addonName, DSU = ...\n")
         for name in builder.MEDIA_FILES:
             (self.source / name).parent.mkdir(parents=True, exist_ok=True)
             (self.source / name).write_bytes((ROOT / name).read_bytes())
@@ -60,7 +60,7 @@ class ReleaseTests(unittest.TestCase):
     def archive(self, entries=None, files=None):
         files = self.files() if files is None else files
         if entries is None:
-            entries = [("ShieldsUpForever/" + name, files[name], builder.FILE_MODE)
+            entries = [("DyresShieldsUp/" + name, files[name], builder.FILE_MODE)
                        for name in builder.PACKAGE_FILES]
         path = self.base / "candidate.zip"
         with warnings.catch_warnings():
@@ -92,10 +92,10 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(checked, dict(manifest, tag=""))
         notes = " ".join((self.output / "release-notes.md").read_text().split())
         for text in ("Forever beta 1.60.1", "70338", "the APIs it needs", "for any class",
-                     "Shield display", "`/suf options`"):
+                     "Shield display", "`/dsu options`"):
             self.assertIn(text, notes)
         with zipfile.ZipFile(path) as archive:
-            self.assertEqual(archive.namelist(), ["ShieldsUpForever/" + name
+            self.assertEqual(archive.namelist(), ["DyresShieldsUp/" + name
                                                 for name in builder.PACKAGE_FILES])
             for entry in archive.infolist():
                 self.assertEqual(entry.date_time, (1980, 1, 1, 0, 0, 0))
@@ -156,9 +156,9 @@ class ReleaseTests(unittest.TestCase):
                                  ("1.2.3-beta.2", "beta"), ("1.2.3-beta.1+build.007", "beta"),
                                  ("1.2.3+beta-build", "release")):
             with self.subTest(version=version):
-                toc = (ROOT / "ShieldsUpForever.toc").read_bytes().replace(b"\r\n", b"\n")
+                toc = (ROOT / "DyresShieldsUp.toc").read_bytes().replace(b"\r\n", b"\n")
                 toc = toc.replace(self.version.encode(), version.encode())
-                (self.source / "ShieldsUpForever.toc").write_bytes(toc)
+                (self.source / "DyresShieldsUp.toc").write_bytes(toc)
                 (self.source / builder.CHANGELOG_NAME).write_bytes(
                     f"## {version}\n\n- Test change.\n".encode("utf-8"))
                 path, manifest = self.build(tag="v" + version)
@@ -218,7 +218,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
     def test_toc_metadata_and_load_order(self):
-        toc = self.files()["ShieldsUpForever.toc"]
+        toc = self.files()["DyresShieldsUp.toc"]
         changes = (
             (b"## Interface: 16001", b"## Interface: 16000"),
             (b"## Interface: 16001", b"## Interface: 16001, 16000"),
@@ -234,10 +234,10 @@ class ReleaseTests(unittest.TestCase):
         for before, after in changes:
             with self.subTest(after=after):
                 files = self.files()
-                files["ShieldsUpForever.toc"] = toc.replace(before, after)
+                files["DyresShieldsUp.toc"] = toc.replace(before, after)
                 self.reject_files(files)
         files = self.files()
-        files["ShieldsUpForever.toc"] += b"\n## Version: " + self.version.encode() + b"\n"
+        files["DyresShieldsUp.toc"] += b"\n## Version: " + self.version.encode() + b"\n"
         self.reject_files(files)
 
     def test_tga_validator(self):
@@ -280,10 +280,10 @@ class ReleaseTests(unittest.TestCase):
                              "DisappearingSwoosh.wav", "TeleportWarpVanish.wav", "SlowSwoosh.wav")))
         path, _ = self.build()
         with zipfile.ZipFile(path) as archive:
-            self.assertIn("ShieldsUpForever/Textures/ShieldArc.tga", archive.namelist())
-            self.assertIn("ShieldsUpForever/Textures/ShieldArcInner.tga", archive.namelist())
-            self.assertIn("ShieldsUpForever/Textures/ShieldArcInnermost.tga", archive.namelist())
-            self.assertIn("ShieldsUpForever/Sounds/FadingSlowDisappear.mp3", archive.namelist())
+            self.assertIn("DyresShieldsUp/Textures/ShieldArc.tga", archive.namelist())
+            self.assertIn("DyresShieldsUp/Textures/ShieldArcInner.tga", archive.namelist())
+            self.assertIn("DyresShieldsUp/Textures/ShieldArcInnermost.tga", archive.namelist())
+            self.assertIn("DyresShieldsUp/Sounds/FadingSlowDisappear.mp3", archive.namelist())
             self.assertEqual(len(archive.namelist()), len(builder.PACKAGE_FILES))
 
     def test_committed_shield_arc_matches_the_build(self):
@@ -312,7 +312,7 @@ class ReleaseTests(unittest.TestCase):
         self.build()
         notes = (self.output / "release-notes.md").read_text(encoding="utf-8")
         self.assertTrue(notes.startswith(
-            f"# Shields Up Forever {self.version}\n\n## Changes\n\n"
+            f"# Dyre's Shields Up {self.version}\n\n## Changes\n\n"
             "- Fixed the thing.\n- Added the other.\n\n## Notes\n\n- Beta for WoW: Forever."))
         self.assertNotIn("Older entry", notes)
 
@@ -339,7 +339,7 @@ class ReleaseTests(unittest.TestCase):
     def test_changelog_never_enters_the_package(self):
         path, _ = self.build()
         with zipfile.ZipFile(path) as archive:
-            self.assertNotIn("ShieldsUpForever/CHANGELOG.md", archive.namelist())
+            self.assertNotIn("DyresShieldsUp/CHANGELOG.md", archive.namelist())
 
     def test_repository_changelog_has_the_toc_version(self):
         text = (ROOT / builder.CHANGELOG_NAME).read_text(encoding="utf-8")
@@ -356,17 +356,17 @@ class ReleaseTests(unittest.TestCase):
                 self.reject_files(files)
 
     def test_extra_traversal_absolute_and_symlink_entries(self):
-        entries = [("ShieldsUpForever/" + name, data, builder.FILE_MODE)
+        entries = [("DyresShieldsUp/" + name, data, builder.FILE_MODE)
                    for name, data in self.files().items()]
-        for name, mode in (("ShieldsUpForever/extra.txt", builder.FILE_MODE),
-                           ("ShieldsUpForever/../Commands.lua", builder.FILE_MODE),
+        for name, mode in (("DyresShieldsUp/extra.txt", builder.FILE_MODE),
+                           ("DyresShieldsUp/../Commands.lua", builder.FILE_MODE),
                            ("../Commands.lua", builder.FILE_MODE),
-                           ("/ShieldsUpForever/Commands.lua", builder.FILE_MODE),
+                           ("/DyresShieldsUp/Commands.lua", builder.FILE_MODE),
                            ("C:/Commands.lua", builder.FILE_MODE),
-                           ("ShieldsUpForever\\Commands.lua", builder.FILE_MODE),
+                           ("DyresShieldsUp\\Commands.lua", builder.FILE_MODE),
                            ("Other/Commands.lua", builder.FILE_MODE),
-                           ("ShieldsUpForever/subdir/", stat.S_IFDIR | 0o755),
-                           ("ShieldsUpForever/link", stat.S_IFLNK | 0o777)):
+                           ("DyresShieldsUp/subdir/", stat.S_IFDIR | 0o755),
+                           ("DyresShieldsUp/link", stat.S_IFLNK | 0o777)):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 builder.validate_archive(self.archive(entries + [(name, b"target", mode)]), self.version)
         symlink = list(entries)
@@ -375,7 +375,7 @@ class ReleaseTests(unittest.TestCase):
             builder.validate_archive(self.archive(symlink), self.version)
 
     def test_duplicate_missing_and_wrong_mode(self):
-        entries = [("ShieldsUpForever/" + name, data, builder.FILE_MODE)
+        entries = [("DyresShieldsUp/" + name, data, builder.FILE_MODE)
                    for name, data in self.files().items()]
         wrong_mode = list(entries)
         wrong_mode[1] = (wrong_mode[1][0], wrong_mode[1][1], stat.S_IFREG | 0o755)
@@ -384,9 +384,9 @@ class ReleaseTests(unittest.TestCase):
                 builder.validate_archive(self.archive(candidate), self.version)
 
     def test_optional_root_directory(self):
-        entries = [("ShieldsUpForever/" + name, data, builder.FILE_MODE)
+        entries = [("DyresShieldsUp/" + name, data, builder.FILE_MODE)
                    for name, data in self.files().items()]
-        directory = ("ShieldsUpForever/", b"", stat.S_IFDIR | 0o755)
+        directory = ("DyresShieldsUp/", b"", stat.S_IFDIR | 0o755)
         builder.validate_archive(self.archive([directory] + entries), self.version)
         with self.assertRaises(ValueError):
             builder.validate_archive(self.archive([directory, directory] + entries), self.version)
@@ -422,7 +422,7 @@ class ReleaseTests(unittest.TestCase):
         path = self.base / "stored.zip"
         with zipfile.ZipFile(path, "w") as archive:
             for name, data in self.files().items():
-                entry = zipfile.ZipInfo("ShieldsUpForever/" + name, builder.ZIP_TIMESTAMP)
+                entry = zipfile.ZipInfo("DyresShieldsUp/" + name, builder.ZIP_TIMESTAMP)
                 entry.create_system = 3
                 entry.external_attr = builder.FILE_MODE << 16
                 archive.writestr(entry, data)

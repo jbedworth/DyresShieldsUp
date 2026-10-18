@@ -1,20 +1,20 @@
-local addonName, SUF = ...
+local addonName, DSU = ...
 
--- Shields Up Forever: the shield display from Mage Tools Forever on its own,
+-- Dyre's Shields Up: the shield display from Mage Tools Forever on its own,
 -- for any class (a Priest in the author's group asked for it). Shield.lua is
 -- the shared component, byte-identical in every AddOn that ships it; this file
 -- adapts it: saved settings, the lock, slash commands, and startup.
-local DEFAULT_TITLE = "Shields Up Forever"
-local READY_MESSAGE = "  Ready. Type /suf to open the settings."
-local SLASH_KEY = "SHIELDSUPFOREVER"
-local PRIMARY_SLASH = "/suf"
+local DEFAULT_TITLE = "Dyre's Shields Up"
+local READY_MESSAGE = "  Ready. Type /dsu to open the settings."
+local SLASH_KEY = "DYRESSHIELDSUP"
+local PRIMARY_SLASH = "/dsu"
 local BACKUP_SLASH = "/shieldsup"
 local MAX_SLASH_ALIASES = 10
-local UNLOCK_HINT = "Drag to move · /suf lock when done"
-SUF.available = false
+local UNLOCK_HINT = "Drag to move · /dsu lock when done"
+DSU.available = false
 
-function SUF.Report(message)
-    DEFAULT_CHAT_FRAME:AddMessage("SUF: " .. tostring(message))
+function DSU.Report(message)
+    DEFAULT_CHAT_FRAME:AddMessage("DSU: " .. tostring(message))
 end
 
 -- Reads TOC fields so the banner follows the packaged version; never gates operations.
@@ -37,9 +37,9 @@ local function ReportLoaded(available)
     if author then
         banner = banner .. " by " .. author
     end
-    SUF.Report(banner)
+    DSU.Report(banner)
     if available then
-        SUF.Report(READY_MESSAGE)
+        DSU.Report(READY_MESSAGE)
     end
 end
 
@@ -50,35 +50,35 @@ local REQUIRED_SHIELD = {"Initialize", "Sanitize", "Refresh", "ApplyBreakSound",
     "SanitizeBreakSound", "ResetPosition", "ReportDebug", "IsOwner", "OwnerAddOn"}
 
 local function CheckInstalledFiles()
-    local display = SUF.ShieldDisplay
+    local display = DSU.ShieldDisplay
     for _, name in ipairs(REQUIRED_SHIELD) do
         if type(display) ~= "table" or type(display[name]) ~= "function" then
             return false, "AddOn files are from different versions (missing Shield.lua " .. name
-                .. "). Reinstall every Shields Up Forever file, then restart the client."
+                .. "). Reinstall every Dyre's Shields Up file, then restart the client."
         end
     end
     for _, name in ipairs(REQUIRED_NAMESPACE) do
-        if type(SUF[name]) ~= "function" then
+        if type(DSU[name]) ~= "function" then
             return false, "AddOn files are from different versions (missing " .. name
-                .. "). Reinstall every Shields Up Forever file, then restart the client."
+                .. "). Reinstall every Dyre's Shields Up file, then restart the client."
         end
     end
     return true
 end
 
--- Per-character settings in ShieldsUpForeverDB, repaired on load so a damaged
+-- Per-character settings in DyresShieldsUpDB, repaired on load so a damaged
 -- or older table can never break the AddOn. The shield component owns its
 -- defaults, its lock included.
-function SUF.SanitizeDB(db)
+function DSU.SanitizeDB(db)
     db = type(db) == "table" and db or {}
-    if SUF.ShieldDisplay then
-        db.shield = SUF.ShieldDisplay.Sanitize(db.shield)
+    if DSU.ShieldDisplay then
+        db.shield = DSU.ShieldDisplay.Sanitize(db.shield)
     end
     return db
 end
 
 -- Another AddOn can register the same slash command; the last one loaded wins.
--- Returns the other command key, or nil when /suf is ours alone.
+-- Returns the other command key, or nil when /dsu is ours alone.
 local function FindSlashConflict()
     for key in pairs(SlashCmdList) do
         if key ~= SLASH_KEY then
@@ -93,67 +93,67 @@ local function FindSlashConflict()
 end
 
 -- With Mage Tools Forever or Warlock Tools Forever also running, only one copy
--- of the display draws (Shield.lua elects it), and SUF's settings then do
+-- of the display draws (Shield.lua elects it), and DSU's settings then do
 -- nothing. Says so, and returns true, when another AddOn shows it.
-function SUF.ShownElsewhere()
-    if SUF.ShieldDisplay.IsOwner() then
+function DSU.ShownElsewhere()
+    if DSU.ShieldDisplay.IsOwner() then
         return false
     end
-    SUF.Report("The shield display is shown by " .. tostring(SUF.ShieldDisplay.OwnerAddOn())
+    DSU.Report("The shield display is shown by " .. tostring(DSU.ShieldDisplay.OwnerAddOn())
         .. "; use its settings for it.")
     return true
 end
 
-function SUF.RefreshShield()
-    SUF.ShieldDisplay.Refresh()
-    SUF.ShieldDisplay.ApplyBreakSound()
+function DSU.RefreshShield()
+    DSU.ShieldDisplay.Refresh()
+    DSU.ShieldDisplay.ApplyBreakSound()
 end
 
 -- While unlocked, the display shows a sample of every part, outlined, to drag.
-function SUF.SetLocked(locked)
-    SUF.db.shield.locked = locked
-    SUF.RefreshShield()
-    if SUF.ShownElsewhere() then
+function DSU.SetLocked(locked)
+    DSU.db.shield.locked = locked
+    DSU.RefreshShield()
+    if DSU.ShownElsewhere() then
         return
     end
     if locked then
-        SUF.Report("Shield display locked.")
+        DSU.Report("Shield display locked.")
     else
-        SUF.Report("Shield display unlocked: drag it where you want, then type /suf lock.")
+        DSU.Report("Shield display unlocked: drag it where you want, then type /dsu lock.")
     end
 end
 
-function SUF.Unlock()
-    SUF.SetLocked(false)
+function DSU.Unlock()
+    DSU.SetLocked(false)
 end
 
-function SUF.Lock()
-    SUF.SetLocked(true)
+function DSU.Lock()
+    DSU.SetLocked(true)
 end
 
 -- A plain frame, so it moves back at once, also in combat.
-function SUF.ResetPosition()
-    SUF.ShieldDisplay.ResetPosition()
-    if not SUF.ShownElsewhere() then
-        SUF.Report("Shield display moved back to its default place.")
+function DSU.ResetPosition()
+    DSU.ShieldDisplay.ResetPosition()
+    if not DSU.ShownElsewhere() then
+        DSU.Report("Shield display moved back to its default place.")
     end
 end
 
-function SUF.ReportShieldDebug()
-    if type(SUF.ShieldDisplay) ~= "table" or type(SUF.ShieldDisplay.ReportDebug) ~= "function" then
-        SUF.Report("debug_shield: Shield.lua is missing.")
+function DSU.ReportShieldDebug()
+    if type(DSU.ShieldDisplay) ~= "table" or type(DSU.ShieldDisplay.ReportDebug) ~= "function" then
+        DSU.Report("debug_shield: Shield.lua is missing.")
         return
     end
-    SUF.ShieldDisplay.ReportDebug(SUF.Report)
+    DSU.ShieldDisplay.ReportDebug(DSU.Report)
 end
 
-SLASH_SHIELDSUPFOREVER1 = PRIMARY_SLASH
-SLASH_SHIELDSUPFOREVER2 = BACKUP_SLASH
-SlashCmdList[SLASH_KEY] = function(message) SUF.HandleCommand(message) end
+SLASH_DYRESSHIELDSUP1 = PRIMARY_SLASH
+SLASH_DYRESSHIELDSUP2 = BACKUP_SLASH
+SlashCmdList[SLASH_KEY] = function(message) DSU.HandleCommand(message) end
 
 local function LoadDB()
-    ShieldsUpForeverDB = SUF.SanitizeDB(ShieldsUpForeverDB)
-    SUF.db = ShieldsUpForeverDB
+    DyresShieldsUpDB = DSU.SanitizeDB(DyresShieldsUpDB)
+    DSU.db = DyresShieldsUpDB
 end
 
 local events = CreateFrame("Frame")
@@ -169,25 +169,25 @@ events:SetScript("OnEvent", function(self, event, loadedName)
     end
     self:UnregisterEvent("PLAYER_LOGIN")
     local available, message = CheckInstalledFiles()
-    if available and not SUF.db then
+    if available and not DSU.db then
         LoadDB()
     end
-    SUF.available = available
+    DSU.available = available
     ReportLoaded(available)
     local conflict = FindSlashConflict()
     if conflict then
-        SUF.Report("Another AddOn (" .. conflict .. ") also uses " .. PRIMARY_SLASH
+        DSU.Report("Another AddOn (" .. conflict .. ") also uses " .. PRIMARY_SLASH
             .. ". Use " .. BACKUP_SLASH .. " instead.")
     end
     if not available then
-        SUF.Report(message)
+        DSU.Report(message)
         return
     end
     -- Any class: the display shows every absorb on you, and its icon row
     -- holds your own class's shields and the ones anyone can put on you.
     -- Called here rather than from each file's own PLAYER_LOGIN handler, so
     -- startup never depends on event handler order.
-    SUF.ShieldDisplay.Initialize({settings = function() return SUF.db.shield end, report = SUF.Report,
+    DSU.ShieldDisplay.Initialize({settings = function() return DSU.db.shield end, report = DSU.Report,
         unlockHint = UNLOCK_HINT})
-    SUF.InitializeOptions()
+    DSU.InitializeOptions()
 end)

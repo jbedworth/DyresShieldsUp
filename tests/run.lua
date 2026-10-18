@@ -24,7 +24,7 @@ local function contains(actual, fragment, context)
     end
 end
 
-local ADDON = "ShieldsUpForever"
+local ADDON = "DyresShieldsUp"
 local RUNTIME_FILES = {"Commands.lua", "Core.lua", "Shield.lua", "Options.lua"}
 local SPELLS = {
     [11426] = "Ice Barrier", [13031] = "Ice Barrier", [1463] = "Mana Shield", [543] = "Fire Ward",
@@ -287,7 +287,7 @@ local function fixture(options)
     for _, name in ipairs(options.remove or {}) do env[name] = nil end
     -- Other AddOns shipping Shield.lua, loaded in folder order: {addon, version,
     -- before, runs}; each gets its own namespace. A copy whose AddOn runs (MTF
-    -- on a Mage) initializes it at login, before or after SUF as given.
+    -- on a Mage) initializes it at login, before or after DSU as given.
     state.copies = {}
     local function loadShieldCopy(spec)
         local source = assert(io.open("Shield.lua")):read("*a")
@@ -323,12 +323,12 @@ local function fixture(options)
     for _, spec in ipairs(options.shieldCopies or {}) do
         if not spec.before then loadShieldCopy(spec) end
     end
-    env.ShieldsUpForeverDB = options.db
+    env.DyresShieldsUpDB = options.db
     state.env = env
     state.emit("ADDON_LOADED", ADDON)
     state.emit("PLAYER_LOGIN")
 
-    function state.slash(text) env.SlashCmdList.SHIELDSUPFOREVER(text) end
+    function state.slash(text) env.SlashCmdList.DYRESSHIELDSUP(text) end
     function state.cast(spellID)
         state.emit("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-" .. spellID, spellID)
     end
@@ -351,12 +351,12 @@ test("texture paths follow the AddOn's folder", function()
     contains(source, 'local ARC_TEXTURE = "Interface\\\\AddOns\\\\" .. addonName .. "\\\\Textures\\\\ShieldArc"')
     local state = fixture()
     state.cast(POWER_WORD_SHIELD)
-    equal(state.ring().bar.statusBarTexture, "Interface\\AddOns\\ShieldsUpForever\\Textures\\ShieldArc")
+    equal(state.ring().bar.statusBarTexture, "Interface\\AddOns\\DyresShieldsUp\\Textures\\ShieldArc")
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "SUF: Shields Up Forever 0.1.0-beta by Dyre")
-    equal(state.messages[2], "SUF:   Ready. Type /suf to open the settings.")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 0.2.0-beta by Dyre")
+    equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
 end)
@@ -372,33 +372,33 @@ test("commands are one word; extra words and unknown commands show usage", funct
     local state = fixture()
     for _, text in ipairs({"what", "unlock now", "debug"}) do
         state.slash(text)
-        contains(state.last(), "Use /suf, /suf options")
+        contains(state.last(), "Use /dsu, /dsu options")
     end
 end)
-test("/suf and /suf options open the settings page", function()
+test("/dsu and /dsu options open the settings page", function()
     local state = fixture()
     state.slash("")
-    equal(state.opened, "id:Shields Up Forever")
+    equal(state.opened, "id:Dyre's Shields Up")
     state.opened = nil
     state.slash("  OPTIONS ")
-    equal(state.opened, "id:Shields Up Forever")
-    equal(state.registered, state.categories["Shields Up Forever"])
+    equal(state.opened, "id:Dyre's Shields Up")
+    equal(state.registered, state.categories["Dyre's Shields Up"])
 end)
 test("/shieldsup is a backup slash command", function()
     local state = fixture()
-    equal(state.env.SLASH_SHIELDSUPFOREVER1, "/suf")
-    equal(state.env.SLASH_SHIELDSUPFOREVER2, "/shieldsup")
+    equal(state.env.SLASH_DYRESSHIELDSUP1, "/dsu")
+    equal(state.env.SLASH_DYRESSHIELDSUP2, "/shieldsup")
 end)
-test("another AddOn registering /suf is reported once at login", function()
-    local state = fixture({slashCmdList = {OTHER = function() end}, globals = {SLASH_OTHER1 = "/SUF"}})
-    contains(state.messages[3], "Another AddOn (OTHER) also uses /suf. Use /shieldsup instead.")
+test("another AddOn registering /dsu is reported once at login", function()
+    local state = fixture({slashCmdList = {OTHER = function() end}, globals = {SLASH_OTHER1 = "/DSU"}})
+    contains(state.messages[3], "Another AddOn (OTHER) also uses /dsu. Use /shieldsup instead.")
 end)
 test("a mixed install of old and new files is reported at login", function()
     local state = fixture({files = {"Commands.lua", "Core.lua", "Options.lua"}})
     equal(state.suf.available, false)
     contains(state.last(), "missing Shield.lua")
     state.slash("unlock")
-    contains(state.last(), "Shields Up Forever is unavailable")
+    contains(state.last(), "Dyre's Shields Up is unavailable")
     state.slash("debug_shield")
     contains(state.last(), "Shield.lua is missing")
     local noOptions = fixture({files = {"Commands.lua", "Core.lua", "Shield.lua"}})
@@ -424,7 +424,7 @@ test("saved settings get defaults and are repaired on load", function()
     equal(fixture({db = "broken"}).suf.db.shield.scale, 100)
     equal(fixture({db = {shield = {scale = 72}}}).suf.db.shield.scale, 70, "sizes step by 5")
 end)
-test("without the Settings API SUF runs and /suf explains", function()
+test("without the Settings API DSU runs and /dsu explains", function()
     local state = fixture({noSettings = true})
     equal(state.suf.available, true)
     state.slash("")
@@ -545,23 +545,23 @@ end)
 test("the settings page changes the display", function()
     local state = fixture()
     local ring = state.ring()
-    state.settings.SUF_SHIELD_NUMBER:SetValue(false)
+    state.settings.DSU_SHIELD_NUMBER:SetValue(false)
     state.cast(POWER_WORD_SHIELD)
     equal(ring.text.text, "")
-    state.settings.SUF_SHIELD_SCALE:SetValue(83)
+    state.settings.DSU_SHIELD_SCALE:SetValue(83)
     equal(state.suf.db.shield.scale, 85)
     equal(ring.scale, 0.85)
-    state.settings.SUF_SHIELD_BREAK_SOUND:SetValue(true)
+    state.settings.DSU_SHIELD_BREAK_SOUND:SetValue(true)
     equal(state.auraSoundCount, 13, "every rank of Power Word: Shield and Blessing of Protection")
     equal(state.auraSounds[1].trigger, 2, "on removal")
     equal(state.auraSounds[1].info.soundFileName,
-        "Interface\\AddOns\\ShieldsUpForever\\Sounds\\FadingSlowDisappear.mp3",
+        "Interface\\AddOns\\DyresShieldsUp\\Sounds\\FadingSlowDisappear.mp3",
         "the AddOn's own file: the client plays no game sound by path")
     equal(state.played.file, state.auraSounds[1].info.soundFileName, "turning it on plays it once")
     state.played = nil
-    state.settings.SUF_SHIELD_SCALE:SetValue(90)
+    state.settings.DSU_SHIELD_SCALE:SetValue(90)
     equal(state.played, nil, "other settings do not play it")
-    state.settings.SUF_SHIELD_ENABLED:SetValue(false)
+    state.settings.DSU_SHIELD_ENABLED:SetValue(false)
     equal(ring.shown, false)
     local left = 0
     for _ in pairs(state.auraSounds) do left = left + 1 end
@@ -569,49 +569,49 @@ test("the settings page changes the display", function()
 end)
 test("the break sound is chosen in a dropdown under its switch; choosing one plays it", function()
     local state = fixture()
-    local page = state.categories["Shields Up Forever"]
+    local page = state.categories["Dyre's Shields Up"]
     local dropdown
     for _, initializer in ipairs(page.initializers) do
-        if initializer.setting.variable == "SUF_SHIELD_BREAK_SOUND_CHOICE" then dropdown = initializer end
+        if initializer.setting.variable == "DSU_SHIELD_BREAK_SOUND_CHOICE" then dropdown = initializer end
     end
-    equal(dropdown.parentInitializer.setting.variable, "SUF_SHIELD_BREAK_SOUND", "under the sound switch")
+    equal(dropdown.parentInitializer.setting.variable, "DSU_SHIELD_BREAK_SOUND", "under the sound switch")
     local labels = {}
     for _, choice in ipairs(dropdown.choices()) do labels[#labels + 1] = choice.label end
     equal(table.concat(labels, ", "),
         "Fading slow disappear, Disappear blow swoosh, Cartoon vanish, Disappear, Magical disappear, "
             .. "Disappear (short), Disappearing swoosh, Teleport warp vanish, Slow swoosh")
     equal(state.suf.db.shield.breakSoundKey, "fadingslow", "the default")
-    state.settings.SUF_SHIELD_BREAK_SOUND:SetValue(true)
+    state.settings.DSU_SHIELD_BREAK_SOUND:SetValue(true)
     state.played = nil
-    state.settings.SUF_SHIELD_BREAK_SOUND_CHOICE:SetValue("magical")
+    state.settings.DSU_SHIELD_BREAK_SOUND_CHOICE:SetValue("magical")
     equal(state.suf.db.shield.breakSoundKey, "magical")
-    equal(state.played.file, "Interface\\AddOns\\ShieldsUpForever\\Sounds\\MagicalDisappear.mp3", "previewed")
+    equal(state.played.file, "Interface\\AddOns\\DyresShieldsUp\\Sounds\\MagicalDisappear.mp3", "previewed")
     local live
     for _, sound in pairs(state.auraSounds) do live = sound end
     equal(live.info.soundFileName, state.played.file, "registered again with the new sound")
-    state.settings.SUF_SHIELD_BREAK_SOUND_CHOICE:SetValue("nonsense")
+    state.settings.DSU_SHIELD_BREAK_SOUND_CHOICE:SetValue("nonsense")
     equal(state.suf.db.shield.breakSoundKey, "fadingslow", "an unknown sound falls back to the default")
     equal(fixture({db = {shield = {breakSoundKey = 7}}}).suf.db.shield.breakSoundKey, "fadingslow", "repaired on load")
 end)
-test("/suf unlock shows a sample to drag; /suf lock and the page's switch lock it", function()
+test("/dsu unlock shows a sample to drag; /dsu lock and the page's switch lock it", function()
     local state = fixture()
     local ring = state.ring()
     state.slash("unlock")
     equal(state.suf.db.shield.locked, false)
-    equal(state.settings.SUF_UNLOCKED:GetValue(), true, "the page's switch follows")
+    equal(state.settings.DSU_UNLOCKED:GetValue(), true, "the page's switch follows")
     equal(ring.shown, true)
     equal(ring.mouse, true)
     equal(ring.text.text, "drag me")
     equal(ring.sample.shown, true)
     equal(ring.mover.shown, true)
-    contains(ring.mover.hint.text, "/suf lock when done")
+    contains(ring.mover.hint.text, "/dsu lock when done")
     contains(state.last(), "drag it where you want")
     ring.scripts.OnDragStart(ring)
     equal(ring.moving, true)
     ring:SetPoint("LEFT", state.env.UIParent, "LEFT", 10, 0)
     ring.scripts.OnDragStop(ring)
     equal(state.suf.db.shield.position.point, "LEFT")
-    state.settings.SUF_UNLOCKED:SetValue(false)
+    state.settings.DSU_UNLOCKED:SetValue(false)
     equal(state.suf.db.shield.locked, true)
     equal(ring.shown, false)
     equal(ring.mouse, false)
@@ -625,12 +625,12 @@ test("without the absorb API the display stays off with one message", function()
     equal(state.ring(), nil)
     equal(state.said("The shield display stays off"), true)
 end)
-test("/suf debug_shield runs every step", function()
+test("/dsu debug_shield runs every step", function()
     local state = fixture()
     state.clear()
     state.slash("debug_shield")
     local text = table.concat(state.messages, "|")
-    contains(text, "owner=ShieldsUpForever copies=ShieldsUpForever v6 (running)")
+    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v6 (running)")
     contains(text, "minimumAbsorb=75")
     contains(text, "the absorb total shows above your character")
     equal(text:find("failed", 1, true), nil, "every debug step ran")
@@ -638,16 +638,16 @@ end)
 
 -- Other AddOns shipping the display -------------------------------------------------
 
-test("with Mage Tools Forever on a Priest, SUF draws the ring", function()
+test("with Mage Tools Forever on a Priest, DSU draws the ring", function()
     local state = fixture({shieldCopies = {{addon = "MageToolsForever", before = true}}})
     equal(state.suf.ShieldDisplay.IsOwner(), true, "MTF stays off on a Priest, so its copy takes no part")
     equal(state.ring() ~= nil, true)
 end)
-test("with Mage Tools Forever running too, only one ring shows, and SUF says where", function()
+test("with Mage Tools Forever running too, only one ring shows, and DSU says where", function()
     local state = fixture({class = "MAGE",
         shieldCopies = {{addon = "MageToolsForever", before = true, runs = true}}})
     equal(state.suf.ShieldDisplay.IsOwner(), false, "the first registered wins a tie")
-    equal(state.ring(), nil, "SUF draws nothing")
+    equal(state.ring(), nil, "DSU draws nothing")
     equal(state.copies.MageToolsForever.ShieldDisplay.frame ~= nil, true)
     equal(state.said("The shield display is shown by MageToolsForever; use its settings for it."), true)
     state.clear()
@@ -656,13 +656,13 @@ test("with Mage Tools Forever running too, only one ring shows, and SUF says whe
     state.slash("options")
     contains(state.last(), "shown by MageToolsForever")
 end)
-test("a newer copy elsewhere takes over; SUF takes over from an older one", function()
+test("a newer copy elsewhere takes over; DSU takes over from an older one", function()
     local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 7}}})
     equal(newer.suf.ShieldDisplay.IsOwner(), false)
     local older = fixture({shieldCopies = {{addon = "WarlockToolsForever", runs = true, version = 2}}})
     equal(older.suf.ShieldDisplay.IsOwner(), true)
     equal(older.ring() ~= nil, true)
-    contains(older.copies.WarlockToolsForever.said[1], "shown by ShieldsUpForever")
+    contains(older.copies.WarlockToolsForever.said[1], "shown by DyresShieldsUp")
 end)
 
 local failed = 0

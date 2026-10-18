@@ -17,7 +17,7 @@ from publish_curseforge import PublishError
 
 COMMIT = "a" * 40
 TAG = "v1.2.3-beta"
-REPO = "jbedworth/ShieldsUpForever"
+REPO = "jbedworth/DyresShieldsUp"
 
 
 class ProvenanceTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class ProvenanceTests(unittest.TestCase):
         root = Path(self.temp.name)
         source = root / "source"
         source.mkdir()
-        (source / "ShieldsUpForever.toc").write_text(
+        (source / "DyresShieldsUp.toc").write_text(
             "## Interface: 16001\n## Version: 1.2.3-beta\n"
             + "\n".join(build_release.RUNTIME_FILES) + "\n",
             encoding="utf-8", newline="\n",

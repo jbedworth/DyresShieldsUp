@@ -8,15 +8,15 @@ tested.
 
 | Field | Value |
 | --- | --- |
-| Name | Shields Up Forever |
+| Name | Dyre's Shields Up |
 | Class | Addons |
 | Main category | Buffs & Debuffs. Keep it identical to the TOC `## Category`, which groups the AddOn in the in-game AddOn list. |
 | Additional categories | Combat (CurseForge allows up to 4; unrelated ones can send the project back for changes). |
 | Author shown | Dyre, set through the CurseForge account's username |
 | License | MIT License |
-| Logo | artwork/shields-up-forever-logo.png (1024 x 1024) |
-| Source | https://github.com/jbedworth/ShieldsUpForever |
-| Issues | https://github.com/jbedworth/ShieldsUpForever/issues |
+| Logo | artwork/dyres-shields-up-logo.png (1024 x 1024) |
+| Source | https://github.com/jbedworth/DyresShieldsUp |
+| Issues | https://github.com/jbedworth/DyresShieldsUp/issues |
 
 ## Summary
 
@@ -39,7 +39,7 @@ Per-file changelogs need no manual text: each CI upload uses the version's
 `CHANGELOG.md` section, through `release-notes.md`.
 
 ```markdown
-**Shields Up Forever** shows your remaining shield as a crescent beside your character, for any class. It is the shield display from Mage Tools Forever, on its own.
+**Dyre's Shields Up** shows your remaining shield as a crescent beside your character, for any class. It is the shield display from Mage Tools Forever, on its own.
 
 ### Shield display
 - Fills when a shield lands and drains as it absorbs, with the amount below, also in combat. Drops away the moment the shield is used up.
@@ -49,17 +49,17 @@ Per-file changelogs need no manual text: each CI upload uses the version's
 - Size 50-150%, an optional number, and an optional sound when a shield ends.
 
 ### With Mage Tools Forever or Warlock Tools Forever
-They ship the same display. Installed together, you still see one ring, and Shields Up Forever tells you which AddOn draws it.
+They ship the same display. Installed together, you still see one ring, and Dyre's Shields Up tells you which AddOn draws it.
 
 ### Commands
-- `/suf` or `/suf options` opens the settings (Options > AddOns).
-- `/suf unlock`, `/suf lock`, and `/suf reset` move the display.
-- `/shieldsup` works the same, in case another AddOn uses `/suf`.
+- `/dsu` or `/dsu options` opens the settings (Options > AddOns).
+- `/dsu unlock`, `/dsu lock`, and `/dsu reset` move the display.
+- `/shieldsup` works the same, in case another AddOn uses `/dsu`.
 
 ### Compatibility
 Beta, for the Forever beta client 1.60.1. If a client update removes an API it needs, it says so in chat and the display stays off.
 
 WowUp users (2.24.0 or later): install from the repository URL; GitHub releases carry the Forever metadata WowUp needs.
 
-Source, issues, and license (MIT): https://github.com/jbedworth/ShieldsUpForever
+Source, issues, and license (MIT): https://github.com/jbedworth/DyresShieldsUp
 ```

@@ -1,10 +1,10 @@
-local _, SUF = ...
+local _, DSU = ...
 
-local USAGE = "Use /suf, /suf options, /suf unlock, /suf lock, /suf reset, or /suf debug_shield."
-local UNAVAILABLE = "Shields Up Forever is unavailable. Check the SUF login message."
+local USAGE = "Use /dsu, /dsu options, /dsu unlock, /dsu lock, /dsu reset, or /dsu debug_shield."
+local UNAVAILABLE = "Dyre's Shields Up is unavailable. Check the DSU login message."
 
 -- Each command is one word; "" opens the settings. Handlers live in Core and
--- Options. Diagnostics also run when SUF is unavailable, to help explain why.
+-- Options. Diagnostics also run when DSU is unavailable, to help explain why.
 local COMMANDS = {
     [""] = {handler = "OpenSettings"},
     options = {handler = "OpenSettings"},
@@ -14,7 +14,7 @@ local COMMANDS = {
     debug_shield = {handler = "ReportShieldDebug", always = true},
 }
 
-function SUF.ParseCommand(message)
+function DSU.ParseCommand(message)
     if type(message) ~= "string" then
         return nil, USAGE
     end
@@ -25,16 +25,16 @@ function SUF.ParseCommand(message)
     return command
 end
 
-function SUF.HandleCommand(message)
-    local command, usage = SUF.ParseCommand(message)
+function DSU.HandleCommand(message)
+    local command, usage = DSU.ParseCommand(message)
     if not command then
-        SUF.Report(usage)
+        DSU.Report(usage)
         return
     end
     local entry = COMMANDS[command]
-    if not SUF.available and not entry.always then
-        SUF.Report(UNAVAILABLE)
+    if not DSU.available and not entry.always then
+        DSU.Report(UNAVAILABLE)
         return
     end
-    SUF[entry.handler]()
+    DSU[entry.handler]()
 end

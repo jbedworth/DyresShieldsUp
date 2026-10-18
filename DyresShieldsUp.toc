@@ -1,11 +1,11 @@
 ## Interface: 16001
-## Title: Shields Up Forever
+## Title: Dyre's Shields Up
 ## Notes: A crescent that shows your remaining shield, for any class in WoW Forever
 ## Author: Dyre
-## Version: 0.1.0-beta
+## Version: 0.2.0-beta
 ## IconTexture: Interface\Icons\Spell_Holy_PowerWordShield
 ## Category: Buffs & Debuffs
-## SavedVariablesPerCharacter: ShieldsUpForeverDB
+## SavedVariablesPerCharacter: DyresShieldsUpDB
 
 Commands.lua
 Core.lua

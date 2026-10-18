@@ -4,6 +4,12 @@ Player-facing changes for each Shields Up Forever release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 0.2.0-beta
+
+- Renamed from Shields Up Forever to **Dyre's Shields Up**. The command is now `/dsu` (`/shieldsup` still works), and the AddOn folder is `DyresShieldsUp`. Delete the old `ShieldsUpForever` folder; your settings start fresh, since the game keeps them by folder.
+- Tiny shields no longer flicker the crescent: absorbs under 25 points or 5% of your health, whichever is larger, are not drawn (a Paladin's Seal of Righteousness gives one of 10-20 points).
+- The sound when a shield ends now plays (the old sound did not play on Forever). Choose it from nine sounds under the switch; choosing one plays it.
+
 ## 0.1.0-beta
 
 - Shield display for any class: a segmented crescent beside your character that fills with your remaining shield (Power Word: Shield, Ice Barrier, a ward, or any other absorb on you), in the shield's color, with the amount, also in combat. It drops away the moment the shield is used up.

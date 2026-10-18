@@ -2,21 +2,29 @@
 
 ## Project purpose and scope
 
-Shields Up Forever (SUF, `/suf`) is a World of Warcraft: Forever AddOn that
+Dyre's Shields Up (DSU, `/dsu`) is a World of Warcraft: Forever AddOn that
 ships the shared shield display from Mage Tools Forever (MTF) on its own, for
 any class (author-approved: a Priest in the author's group asked for it). Keep
 this feature set; do not add speculative features or frameworks without
 agreement.
 
+Naming (author-approved): renamed from Shields Up Forever (SUF, `/suf`)
+before its CurseForge release. The title starts with "Dyre's", so players
+can find all of the author's AddOns by searching for it. The apostrophe is
+only in the title: the folder, TOC, repository, saved variables, and globals
+use `DyresShieldsUp`. Commands `/dsu` and `/shieldsup` (the author's
+backup), chat prefix `DSU:`. Listings say plainly that it is for WoW:
+Forever.
+
 ### Shield.lua is shared (author-approved, important)
 
-- Shield.lua is byte-identical in MTF, Warlock Tools Forever (WTF), and SUF,
+- Shield.lua is byte-identical in MTF, Warlock Tools Forever (WTF), and DSU,
   and so are Textures/ShieldArc.tga, ShieldArcInner.tga, and
   ShieldArcInnermost.tga (built by scripts/build_arc.py), and the break
-  sounds in Sounds/. Never edit SUF's
+  sounds in Sounds/. Never edit DSU's
   copy alone: a behavior change goes into all three copies together, with
   `VERSION` bumped in each. tests/test_shield_copy.py compares the copies when
-  sibling checkouts exist. Keep SUF's own needs in Core.lua and Options.lua.
+  sibling checkouts exist. Keep DSU's own needs in Core.lua and Options.lua.
 - Its whole interface: `ShieldDisplay.Initialize({settings, report,
   unlockHint})`, `Sanitize` (it owns its defaults, the lock included),
   `SanitizeScale` and the scale constants, `BREAK_SOUNDS`,
@@ -31,11 +39,11 @@ agreement.
   Priests have no other absorb, so there are no Priest entries.
 - Duplicates reconcile to one ring through the global `ShieldForeverRegistry`:
   each copy registers as its file loads and takes part once its AddOn calls
-  `Initialize` (MTF only on a Mage, WTF only on a Warlock, SUF on any class).
+  `Initialize` (MTF only on a Mage, WTF only on a Warlock, DSU on any class).
   The newest `VERSION` draws, the first registered on a tie; the others draw
-  nothing and say once which AddOn shows it. SUF's settings then do nothing,
-  so `/suf unlock`, `lock`, `reset`, and `options` say which AddOn to use
-  (`SUF.ShownElsewhere`).
+  nothing and say once which AddOn shows it. DSU's settings then do nothing,
+  so `/dsu unlock`, `lock`, `reset`, and `options` say which AddOn to use
+  (`DSU.ShownElsewhere`).
 - The display's rules, from MTF's AGENTS.md (keep them): `UnitGetTotalAbsorbs`
   is always secret and is only passed, unread, to `StatusBar:SetValue`,
   `SetMinMaxValues`, `AbbreviateNumbers`, `FontString:SetText`, and
@@ -67,24 +75,24 @@ agreement.
   from Envato (Elements and AudioJungle; the author keeps the license files,
   not in Git); they are not under the MIT License.
 
-### SUF's own parts (built)
+### DSU's own parts (built)
 
 - One settings page (vertical layout, proxy settings on
-  `ShieldsUpForeverDB.shield`): Shield display, Show the absorb amount, Sound
+  `DyresShieldsUpDB.shield`): Shield display, Show the absorb amount, Sound
   when a shield ends and its Sound choice, Display size (50-150% in steps of 5), and Unlock to move
   it. One frame, so no grid and no magnetic layout.
-- Commands: `/suf` and `/suf options`, `unlock`, `lock`, `reset`,
-  `debug_shield` (runs even when SUF is unavailable). Backup slash
-  `/shieldsup`; a clash on `/suf` is reported once at login.
-- No class gate. SUF turns off only for a mixed install (missing Shield.lua or
+- Commands: `/dsu` and `/dsu options`, `unlock`, `lock`, `reset`,
+  `debug_shield` (runs even when DSU is unavailable). Backup slash
+  `/shieldsup`; a clash on `/dsu` is reported once at login.
+- No class gate. DSU turns off only for a mixed install (missing Shield.lua or
   namespace functions); the shield component itself reports a client without
   the absorb API.
 
 ## Project structure
 
-- Runtime files: ShieldsUpForever.toc, Commands.lua, Core.lua, Shield.lua,
+- Runtime files: DyresShieldsUp.toc, Commands.lua, Core.lua, Shield.lua,
   Options.lua, loaded in that order, plus the three textures. Commands parses
-  `/suf`; Core owns saved settings, the login banner, install checks, slash
+  `/dsu`; Core owns saved settings, the login banner, install checks, slash
   conflict reporting, the lock, and startup; Options owns the settings page.
 - tests/run.lua holds the Lua 5.1 mock suite. tests/test_*.py cover the
   release helpers in scripts/, that the committed textures match
@@ -103,7 +111,7 @@ agreement.
 - The TOC uses `## Category: Buffs & Debuffs`; keep it identical to the
   CurseForge main category, because the in-game AddOn list groups by exact text.
 - Add no other runtime assets without agreement.
-- Git origin: git@github.com:jbedworth/ShieldsUpForever.git. Inspect Git state
+- Git origin: git@github.com:jbedworth/DyresShieldsUp.git. Inspect Git state
   before acting and preserve user work. Text is LF under .gitattributes.
 
 ## Client and API verification
@@ -127,7 +135,7 @@ agreement.
 - Lua 5.1 syntax and libraries only. Four-space indentation. Prefer local
   variables and functions; share state through the AddOn namespace. Expose
   globals only when WoW requires them (slash commands, saved variables),
-  prefixed `ShieldsUpForever` or `SUF`, and the shared `ShieldForeverRegistry`.
+  prefixed `DyresShieldsUp` or `DSU`, and the shared `ShieldForeverRegistry`.
 - Centralize meaningful constants; avoid unexplained magic numbers.
 - Comment sparingly: non-obvious intent, API constraints, or tradeoffs.
 - Event-driven work only; no polling or idle `OnUpdate` handlers.
@@ -136,10 +144,10 @@ agreement.
 
 - Validate commands before changing settings. Treat bad commands, missing APIs,
   and mixed installs as expected failures with concise feedback prefixed
-  `SUF:`.
+  `DSU:`.
 - Never prompt or open popups in combat. Never swallow errors with blanket
   `pcall` handlers or replace the error handler.
-- Repair saved settings on load so a damaged or older table cannot break SUF.
+- Repair saved settings on load so a damaged or older table cannot break DSU.
 - Startup is driven by Core at `PLAYER_LOGIN`; never rely on event handler
   order between files.
 
@@ -160,10 +168,10 @@ agreement.
 - Every release needs a `## <version>` section in CHANGELOG.md with
   player-facing changes; the builder puts it at the top of release-notes.md
   and fails without it.
-- Package only ShieldsUpForever.toc, Commands.lua, Core.lua, Shield.lua,
+- Package only DyresShieldsUp.toc, Commands.lua, Core.lua, Shield.lua,
   Options.lua, LICENSE, Textures/ShieldArc.tga, Textures/ShieldArcInner.tga,
-  Textures/ShieldArcInnermost.tga, and the break sounds in Sounds/ under the top-level `ShieldsUpForever/`
-  folder, named `ShieldsUpForever-<version>-forever.zip`, with the builder's
+  Textures/ShieldArcInnermost.tga, and the break sounds in Sounds/ under the top-level `DyresShieldsUp/`
+  folder, named `DyresShieldsUp-<version>-forever.zip`, with the builder's
   BigWigs-format `release.json` (flavor `forever`) attached for WowUp.
 - Publishing requires repository variables `ENABLE_GITHUB_RELEASES='true'`
   and, for CurseForge, `ENABLE_CURSEFORGE_UPLOADS='true'`, plus
