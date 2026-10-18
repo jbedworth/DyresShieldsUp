@@ -8,7 +8,7 @@ local UNAVAILABLE = "The AddOn settings page is unavailable on this client. Use 
 
 local REQUIRED_SETTINGS = {
     "RegisterVerticalLayoutCategory", "RegisterProxySetting", "RegisterAddOnCategory", "CreateCheckbox",
-    "CreateSlider", "CreateSliderOptions", "OpenToCategory",
+    "CreateSlider", "CreateSliderOptions", "CreateDropdown", "CreateControlTextContainer", "OpenToCategory",
 }
 
 local category
@@ -59,8 +59,29 @@ function SUF.InitializeOptions()
             .. "If Mage Tools Forever or Warlock Tools Forever shows it instead, use that AddOn's settings.")
     Flag("SUF_SHIELD_NUMBER", "Show the absorb amount", "number", true,
         "Show your remaining absorb as a number under the crescent.")
-    Flag("SUF_SHIELD_BREAK_SOUND", "Sound when a shield ends", "breakSound", false,
+    local soundSwitch = Flag("SUF_SHIELD_BREAK_SOUND", "Sound when a shield ends", "breakSound", false,
         "Play a sound when a shield in the icon row ends or breaks, also in combat.")
+    -- Which sound, under its switch (author-approved: a default you can change).
+    local sound = Proxy("SUF_SHIELD_BREAK_SOUND_CHOICE", Settings.VarType.String, "Sound",
+        display.DEFAULT_BREAK_SOUND,
+        function() return SUF.db.shield.breakSoundKey end,
+        function(value)
+            SUF.db.shield.breakSoundKey = display.SanitizeBreakSound(value)
+            SUF.RefreshShield()
+            display.PreviewBreakSound()
+        end)
+    local function SoundChoices()
+        local container = Settings.CreateControlTextContainer()
+        for _, choice in ipairs(display.BREAK_SOUNDS) do
+            container:Add(choice.key, choice.label)
+        end
+        return container:GetData()
+    end
+    local dropdown = Settings.CreateDropdown(category, sound, SoundChoices,
+        "The sound when a shield ends. Choosing one plays it once.")
+    if type(dropdown.SetParentInitializer) == "function" then
+        dropdown:SetParentInitializer(soundSwitch, function() return SUF.db.shield.breakSound end)
+    end
     local scale = Proxy("SUF_SHIELD_SCALE", Settings.VarType.Number, "Display size (%)", display.DEFAULT_SCALE,
         function() return SUF.db.shield.scale end,
         function(value)

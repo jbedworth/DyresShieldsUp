@@ -10,8 +10,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SIBLINGS = ("MageToolsForever", "WarlockToolsForever")
+SOUNDS = ("FadingSlowDisappear.mp3", "DisappearBlowSwoosh.mp3", "CartoonVanish.mp3", "Disappear.mp3",
+          "MagicalDisappear.mp3", "DisappearShort.wav", "DisappearingSwoosh.wav", "TeleportWarpVanish.wav",
+          "SlowSwoosh.wav")
 SHARED = ("Shield.lua", "Textures/ShieldArc.tga", "Textures/ShieldArcInner.tga",
-          "Textures/ShieldArcInnermost.tga")
+          "Textures/ShieldArcInnermost.tga") + tuple("Sounds/" + name for name in SOUNDS)
 
 
 class ShieldCopyTests(unittest.TestCase):

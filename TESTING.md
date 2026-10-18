@@ -60,12 +60,15 @@ carry over:
   StatusBar's fill texture follows a secret value, and its clipping hides the
   crescent while the fill is empty. A Paladin's Seal of Righteousness shield
   no longer flickers the ring (confirmed on a Paladin).
+- The break sound: the client plays no game sound by path (RaidWarning.ogg
+  stayed silent); an AddOn's own file plays, also through `AddAuraSound`
+  with trigger Removed when Blessing of Protection runs out.
 
 ### Open client questions
 
 1. Whether `SetAlpha` with the secret absorb hides the crescent at 0 in
    combat.
-2. Whether the break sound's trigger Removed fires for each shield.
+2. Whether the break sound plays when a shield breaks from damage in combat.
 3. Which order the client loads MTF, SUF, and WTF in, which decides the ring's
    owner on equal versions.
 

@@ -112,6 +112,7 @@ local function fixture(options)
     env.UnitGetTotalAbsorbs = function(unit) equal(unit, "player") return state.absorb end
     env.UnitHealthMax = function(unit) equal(unit, "player") return state.maxHealth end
     env.AbbreviateNumbers = function(value) return {abbreviated = value} end
+    env.PlaySoundFile = function(file, channel) state.played = {file = file, channel = channel} end
     env.C_UnitAuras = {
         -- As in client, aura sound changes are refused during an encounter.
         AddAuraSound = function(trigger, info)
@@ -144,6 +145,9 @@ local function fixture(options)
         end
         local function initializer(category, setting, extra, tooltip)
             local object = {setting = setting, options = extra, tooltip = tooltip}
+            function object:SetParentInitializer(parent, predicate)
+                self.parentInitializer, self.predicate = parent, predicate
+            end
             category.initializers[#category.initializers + 1] = object
             return object
         end
@@ -170,6 +174,17 @@ local function fixture(options)
             CreateSliderOptions = function(minValue, maxValue, step)
                 local object = {minValue = minValue, maxValue = maxValue, step = step}
                 function object:SetLabelFormatter(label) self.label = label end
+                return object
+            end,
+            CreateControlTextContainer = function()
+                local container = {data = {}}
+                function container:Add(value, label) self.data[#self.data + 1] = {value = value, label = label} end
+                function container:GetData() return self.data end
+                return container
+            end,
+            CreateDropdown = function(category, setting, choices, tooltip)
+                local object = initializer(category, setting, nil, tooltip)
+                object.choices = choices
                 return object
             end,
             OpenToCategory = function(id) state.opened = id end,
@@ -539,11 +554,44 @@ test("the settings page changes the display", function()
     state.settings.SUF_SHIELD_BREAK_SOUND:SetValue(true)
     equal(state.auraSoundCount, 13, "every rank of Power Word: Shield and Blessing of Protection")
     equal(state.auraSounds[1].trigger, 2, "on removal")
+    equal(state.auraSounds[1].info.soundFileName,
+        "Interface\\AddOns\\ShieldsUpForever\\Sounds\\FadingSlowDisappear.mp3",
+        "the AddOn's own file: the client plays no game sound by path")
+    equal(state.played.file, state.auraSounds[1].info.soundFileName, "turning it on plays it once")
+    state.played = nil
+    state.settings.SUF_SHIELD_SCALE:SetValue(90)
+    equal(state.played, nil, "other settings do not play it")
     state.settings.SUF_SHIELD_ENABLED:SetValue(false)
     equal(ring.shown, false)
     local left = 0
     for _ in pairs(state.auraSounds) do left = left + 1 end
     equal(left, 0, "no sounds while the display is off")
+end)
+test("the break sound is chosen in a dropdown under its switch; choosing one plays it", function()
+    local state = fixture()
+    local page = state.categories["Shields Up Forever"]
+    local dropdown
+    for _, initializer in ipairs(page.initializers) do
+        if initializer.setting.variable == "SUF_SHIELD_BREAK_SOUND_CHOICE" then dropdown = initializer end
+    end
+    equal(dropdown.parentInitializer.setting.variable, "SUF_SHIELD_BREAK_SOUND", "under the sound switch")
+    local labels = {}
+    for _, choice in ipairs(dropdown.choices()) do labels[#labels + 1] = choice.label end
+    equal(table.concat(labels, ", "),
+        "Fading slow disappear, Disappear blow swoosh, Cartoon vanish, Disappear, Magical disappear, "
+            .. "Disappear (short), Disappearing swoosh, Teleport warp vanish, Slow swoosh")
+    equal(state.suf.db.shield.breakSoundKey, "fadingslow", "the default")
+    state.settings.SUF_SHIELD_BREAK_SOUND:SetValue(true)
+    state.played = nil
+    state.settings.SUF_SHIELD_BREAK_SOUND_CHOICE:SetValue("magical")
+    equal(state.suf.db.shield.breakSoundKey, "magical")
+    equal(state.played.file, "Interface\\AddOns\\ShieldsUpForever\\Sounds\\MagicalDisappear.mp3", "previewed")
+    local live
+    for _, sound in pairs(state.auraSounds) do live = sound end
+    equal(live.info.soundFileName, state.played.file, "registered again with the new sound")
+    state.settings.SUF_SHIELD_BREAK_SOUND_CHOICE:SetValue("nonsense")
+    equal(state.suf.db.shield.breakSoundKey, "fadingslow", "an unknown sound falls back to the default")
+    equal(fixture({db = {shield = {breakSoundKey = 7}}}).suf.db.shield.breakSoundKey, "fadingslow", "repaired on load")
 end)
 test("/suf unlock shows a sample to drag; /suf lock and the page's switch lock it", function()
     local state = fixture()
@@ -582,7 +630,7 @@ test("/suf debug_shield runs every step", function()
     state.clear()
     state.slash("debug_shield")
     local text = table.concat(state.messages, "|")
-    contains(text, "owner=ShieldsUpForever copies=ShieldsUpForever v5 (running)")
+    contains(text, "owner=ShieldsUpForever copies=ShieldsUpForever v6 (running)")
     contains(text, "minimumAbsorb=75")
     contains(text, "the absorb total shows above your character")
     equal(text:find("failed", 1, true), nil, "every debug step ran")
@@ -609,7 +657,7 @@ test("with Mage Tools Forever running too, only one ring shows, and SUF says whe
     contains(state.last(), "shown by MageToolsForever")
 end)
 test("a newer copy elsewhere takes over; SUF takes over from an older one", function()
-    local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 6}}})
+    local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 7}}})
     equal(newer.suf.ShieldDisplay.IsOwner(), false)
     local older = fixture({shieldCopies = {{addon = "WarlockToolsForever", runs = true, version = 2}}})
     equal(older.suf.ShieldDisplay.IsOwner(), true)

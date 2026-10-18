@@ -46,8 +46,8 @@ end
 -- Functions other runtime files must define. A mixed install of old and new
 -- files otherwise fails silently, because the client hides Lua errors by default.
 local REQUIRED_NAMESPACE = {"ParseCommand", "HandleCommand", "InitializeOptions", "OpenSettings"}
-local REQUIRED_SHIELD = {"Initialize", "Sanitize", "Refresh", "ApplyBreakSound", "ResetPosition", "ReportDebug",
-    "IsOwner", "OwnerAddOn"}
+local REQUIRED_SHIELD = {"Initialize", "Sanitize", "Refresh", "ApplyBreakSound", "PreviewBreakSound",
+    "SanitizeBreakSound", "ResetPosition", "ReportDebug", "IsOwner", "OwnerAddOn"}
 
 local function CheckInstalledFiles()
     local display = SUF.ShieldDisplay

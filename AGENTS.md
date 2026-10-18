@@ -12,14 +12,17 @@ agreement.
 
 - Shield.lua is byte-identical in MTF, Warlock Tools Forever (WTF), and SUF,
   and so are Textures/ShieldArc.tga, ShieldArcInner.tga, and
-  ShieldArcInnermost.tga (built by scripts/build_arc.py). Never edit SUF's
+  ShieldArcInnermost.tga (built by scripts/build_arc.py), and the break
+  sounds in Sounds/. Never edit SUF's
   copy alone: a behavior change goes into all three copies together, with
   `VERSION` bumped in each. tests/test_shield_copy.py compares the copies when
   sibling checkouts exist. Keep SUF's own needs in Core.lua and Options.lua.
 - Its whole interface: `ShieldDisplay.Initialize({settings, report,
   unlockHint})`, `Sanitize` (it owns its defaults, the lock included),
-  `SanitizeScale` and the scale constants, `Refresh`, `ApplyBreakSound`,
-  `ResetPosition`, `ReportDebug`, `IsOwner`, and `OwnerAddOn`.
+  `SanitizeScale` and the scale constants, `BREAK_SOUNDS`,
+  `DEFAULT_BREAK_SOUND`, `SanitizeBreakSound`, `PreviewBreakSound`, `Refresh`,
+  `ApplyBreakSound`, `ResetPosition`, `ReportDebug`, `IsOwner`, and
+  `OwnerAddOn`.
 - Scope (author-approved): Shield.lua stays as it is. Its icon row holds the
   player's own class's shields (`class` on each entry), then the shared ones
   (Power Word: Shield, Blessing of Protection). Class shields only land on
@@ -54,12 +57,21 @@ agreement.
   StatusBar, one point wide and ending at the minimum, takes it as its value,
   and a clipping frame anchored to the gate's fill holds the crescent and the
   number (confirmed on a Paladin). Fixed constants, no setting.
+- Version 6 (with MTF and WTF; found in client): the break sound is one of
+  the AddOn's own files in Sounds/, byte-identical in all three, chosen in a
+  dropdown under the sound switch (author-approved: a default you can change,
+  Fading slow disappear). The client plays no game sound by path
+  (RaidWarning.ogg stayed silent), while an AddOn's file plays, also through
+  `C_UnitAuras.AddAuraSound` when a buff runs out. Turning the sound on, or
+  choosing one, plays it once. The sounds are licensed to Vertiso Corporation
+  from Envato (Elements and AudioJungle; the author keeps the license files,
+  not in Git); they are not under the MIT License.
 
 ### SUF's own parts (built)
 
 - One settings page (vertical layout, proxy settings on
   `ShieldsUpForeverDB.shield`): Shield display, Show the absorb amount, Sound
-  when a shield ends, Display size (50-150% in steps of 5), and Unlock to move
+  when a shield ends and its Sound choice, Display size (50-150% in steps of 5), and Unlock to move
   it. One frame, so no grid and no magnetic layout.
 - Commands: `/suf` and `/suf options`, `unlock`, `lock`, `reset`,
   `debug_shield` (runs even when SUF is unavailable). Backup slash
@@ -150,7 +162,7 @@ agreement.
   and fails without it.
 - Package only ShieldsUpForever.toc, Commands.lua, Core.lua, Shield.lua,
   Options.lua, LICENSE, Textures/ShieldArc.tga, Textures/ShieldArcInner.tga,
-  and Textures/ShieldArcInnermost.tga under the top-level `ShieldsUpForever/`
+  Textures/ShieldArcInnermost.tga, and the break sounds in Sounds/ under the top-level `ShieldsUpForever/`
   folder, named `ShieldsUpForever-<version>-forever.zip`, with the builder's
   BigWigs-format `release.json` (flavor `forever`) attached for WowUp.
 - Publishing requires repository variables `ENABLE_GITHUB_RELEASES='true'`
