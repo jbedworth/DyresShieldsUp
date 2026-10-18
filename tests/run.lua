@@ -186,6 +186,11 @@ local function fixture(options)
         function object:SetMinMaxValues(minValue, maxValue) self.minValue, self.maxValue = minValue, maxValue end
         function object:SetStatusBarTexture(texture) self.statusBarTexture = texture end
         function object:SetValue(value) self.value = value end
+        function object:GetStatusBarTexture()
+            self.fill = self.fill or widget("Texture", nil, self)
+            return self.fill
+        end
+        function object:SetClipsChildren(value) self.clips = value end
         function object:EnableMouse(value) self.mouse = value == true end
         function object:SetAlpha(value) self.alpha = value end
         function object:GetAlpha() return self.alpha or 1 end
@@ -475,6 +480,42 @@ test("a shield another player puts on you shows, also after a reload", function(
     equal(reloaded.ring().shown, true)
     equal(reloaded.ring().bar.barColor[3], 0.85, "Power Word: Shield white")
 end)
+test("a tiny absorb stays hidden: a gate bar ending at the minimum clips the ring", function()
+    local state = fixture({class = "PALADIN"})
+    state.emit("UNIT_ABSORB_AMOUNT_CHANGED", "player")
+    local ring = state.ring()
+    equal(ring.shown, true)
+    equal(ring.gate.value, state.absorb, "the secret absorb, passed on unread")
+    equal(ring.gate.minValue, 74, "one point wide, so the fill is empty or full")
+    equal(ring.gate.maxValue, 75, "5% of 1500 health beats 25 points")
+    equal(ring.gate.alpha, 0, "the gate itself is never seen")
+    equal(ring.gated.clips, true)
+    local corner = ring.gated.points[2]
+    equal(corner[2], ring.gate:GetStatusBarTexture(), "the clipping frame ends where the gate's fill ends")
+    equal(corner[5], -40, "and reaches below the frame for the number")
+    equal(ring.bar.parent, ring.gated)
+    equal(ring.background.parent, ring.gated)
+    equal(ring.gated.parent, ring.visible, "the opacity still follows the absorb")
+end)
+test("the minimum is 25 points when health is low or secret", function()
+    local state = fixture({class = "PALADIN"})
+    state.maxHealth = 200
+    state.emit("UNIT_MAXHEALTH", "player")
+    equal(state.ring().gate.maxValue, 25, "5% of 200 is below 25 points")
+    state.maxHealth = secret()
+    state.secrets[state.maxHealth] = true
+    state.cast(POWER_WORD_SHIELD)
+    equal(state.ring().gate.minValue, 24, "secret health is never read")
+    equal(state.ring().gate.maxValue, 25)
+end)
+test("unlocked, the gate is open so the sample shows", function()
+    local state = fixture()
+    state.slash("unlock")
+    local gate = state.ring().gate
+    equal(gate.minValue, 0)
+    equal(gate.maxValue, 1)
+    equal(gate.value, 1)
+end)
 test("in combat buffs are not read, and the display stays up", function()
     local state = fixture()
     state.cast(POWER_WORD_SHIELD)
@@ -541,7 +582,8 @@ test("/suf debug_shield runs every step", function()
     state.clear()
     state.slash("debug_shield")
     local text = table.concat(state.messages, "|")
-    contains(text, "owner=ShieldsUpForever copies=ShieldsUpForever v4 (running)")
+    contains(text, "owner=ShieldsUpForever copies=ShieldsUpForever v5 (running)")
+    contains(text, "minimumAbsorb=75")
     contains(text, "the absorb total shows above your character")
     equal(text:find("failed", 1, true), nil, "every debug step ran")
 end)
@@ -567,7 +609,7 @@ test("with Mage Tools Forever running too, only one ring shows, and SUF says whe
     contains(state.last(), "shown by MageToolsForever")
 end)
 test("a newer copy elsewhere takes over; SUF takes over from an older one", function()
-    local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 5}}})
+    local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 6}}})
     equal(newer.suf.ShieldDisplay.IsOwner(), false)
     local older = fixture({shieldCopies = {{addon = "WarlockToolsForever", runs = true, version = 2}}})
     equal(older.suf.ShieldDisplay.IsOwner(), true)

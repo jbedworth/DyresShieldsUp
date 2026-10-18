@@ -56,6 +56,10 @@ carry over:
   has a fixed spot in the row.
 - Own cast events stay readable in combat; aura APIs error in combat for
   AddOn code.
+- The minimum-absorb gate (shield display v5) works: a frame anchored to a
+  StatusBar's fill texture follows a secret value, and its clipping hides the
+  crescent while the fill is empty. A Paladin's Seal of Righteousness shield
+  no longer flickers the ring (confirmed on a Paladin).
 
 ### Open client questions
 
@@ -77,6 +81,9 @@ carry over:
 - [ ] A Paladin's Blessing of Protection on you draws the gold innermost arc
       and its icon, also in combat; as a Paladin, Divine Shield and Divine
       Protection do too. `/suf debug_shield` confirms the IDs.
+- [ ] As a Paladin with Seal of Righteousness, its 10-20 point shield never
+      shows the crescent, in or out of combat; a Power Word: Shield on you
+      still does. `/suf debug_shield` shows `minimumAbsorb`.
 - [ ] Settings: the switches, number, size slider, and break sound work;
       "Unlock to move it" and `/suf unlock` show the full sample to drag;
       unticking or `/suf lock` locks it, and the switch and commands stay in
