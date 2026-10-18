@@ -22,5 +22,13 @@ Use these files for project pages and distribution branding. Keep this directory
 out of the runtime release ZIP; the TOC uses a built-in client icon
 (Spell_Holy_PowerWordShield).
 
+## Screenshots
+
+- `screenshots/shield-display.png`: the shield display with its crescents,
+  absorb amount, and shield icons (captured by the author on the Forever beta
+  client with Mage Tools Forever, which draws the same display).
+
+Retake a screenshot when the feature it shows changes visibly.
+
 This artwork is covered by the repository's MIT License. Copyright (c) 2026
 John Bedworth. Include the applicable license notice with distributed copies.

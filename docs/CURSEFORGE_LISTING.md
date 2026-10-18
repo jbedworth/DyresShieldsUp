@@ -22,6 +22,14 @@ tested.
 
 A crescent beside your character that shows your remaining shield, for any class in World of Warcraft: Forever: Power Word: Shield, Ice Barrier, wards, and any other absorb, also in combat.
 
+## Screenshots
+
+Upload these from `artwork/screenshots/`, with these captions:
+
+| File | Caption |
+| --- | --- |
+| shield-display.png | The shield display: your remaining absorb, with an icon for each shield that is up. |
+
 ## Description
 
 Paste this with the description editor in Markdown mode. Pasted into the rich
