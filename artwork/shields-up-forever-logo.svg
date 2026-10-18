@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Shields Up Forever</title>
+  <desc id="description">An original emblem: a gold-edged heater shield glowing with pale holy light, a radiant star at its heart, beside a segmented crescent of shield light that drains from the top, on a rich dark-brown field framed by a fine gold border.</desc>
+  <defs>
+    <radialGradient id="background" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#49301c"/>
+      <stop offset="0.6" stop-color="#2b190f"/>
+      <stop offset="1" stop-color="#170e09"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4d38b"/>
+      <stop offset="0.32" stop-color="#d5a956"/>
+      <stop offset="0.64" stop-color="#96703a"/>
+      <stop offset="1" stop-color="#e9bf6a"/>
+    </linearGradient>
+    <linearGradient id="holy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffbea"/>
+      <stop offset="0.45" stop-color="#f3e3b0"/>
+      <stop offset="1" stop-color="#b9954f"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5d7fb8"/>
+      <stop offset="1" stop-color="#1d2c5a"/>
+    </linearGradient>
+    <linearGradient id="light" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="arc" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#fff6d6"/>
+      <stop offset="1" stop-color="#cfe9ff"/>
+    </linearGradient>
+    <radialGradient id="aura" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffe9a8" stop-opacity="0.32"/>
+      <stop offset="0.7" stop-color="#c9a24f" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#3a2410" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.4" stop-color="#fff2c4"/>
+      <stop offset="1" stop-color="#d6a446"/>
+    </radialGradient>
+    <filter id="shadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#080502" flood-opacity="0.7"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+    <path id="star" d="M512 372 Q520 462 610 470 Q520 478 512 568 Q504 478 414 470 Q504 462 512 372 Z"/>
+  </defs>
+  <path d="M0 0H1024V1024H0Z" fill="url(#background)"/>
+  <rect x="46" y="46" width="932" height="932" rx="94" fill="none" stroke="url(#gold)" stroke-width="5"/>
+  <rect x="62" y="62" width="900" height="900" rx="80" fill="none" stroke="#b48b45" stroke-opacity="0.28" stroke-width="2"/>
+  <path d="M512 91 L525 108 L512 125 L499 108 Z M512 899 L525 916 L512 933 L499 916 Z" fill="url(#gold)"/>
+  <!-- A holy aura behind the emblem. -->
+  <circle cx="512" cy="480" r="360" fill="url(#aura)"/>
+  <g filter="url(#shadow)">
+    <!-- Glow pass: the crescent and shield blurred, then drawn sharp on top. -->
+    <g filter="url(#glow)" opacity="0.55">
+      <path d="M792.5 321.9 A322 322 0 0 1 819.8 385.3 L781.5 397.1 A282 282 0 0 0 757.7 341.6 Z M824.6 402.6 A322 322 0 0 1 833.9 471.0 L793.9 472.1 A282 282 0 0 0 785.7 412.3 Z M833.9 489.0 A322 322 0 0 1 824.6 557.4 L785.7 547.7 A282 282 0 0 0 793.9 487.9 Z M819.8 574.7 A322 322 0 0 1 792.5 638.1 L757.7 618.4 A282 282 0 0 0 781.5 562.9 Z M783.3 653.5 A322 322 0 0 1 740.1 707.3 L711.8 679.1 A282 282 0 0 0 749.6 631.9 Z M727.0 719.7 A322 322 0 0 1 671.0 760.0 L651.3 725.2 A282 282 0 0 0 700.3 689.9 Z" fill="#fff0c0"/>
+      <path d="M512 214 Q610 250 706 244 L706 470 Q706 640 512 748 Q318 640 318 470 L318 244 Q414 250 512 214 Z" fill="#ffe7a0"/>
+    </g>
+    <!-- The crescent, as the display draws it: a dim track, the spent
+         segments, the filled ones, and a thinner timed crescent inside. -->
+    <path d="M671.0 200.0 A322 322 0 0 1 727.0 240.3 L700.3 270.1 A282 282 0 0 0 651.3 234.8 Z M740.1 252.7 A322 322 0 0 1 783.3 306.5 L749.6 328.1 A282 282 0 0 0 711.8 280.9 Z" fill="#0d1426" fill-opacity="0.6" stroke="#b48b45" stroke-opacity="0.55" stroke-width="3"/>
+    <path d="M792.5 321.9 A322 322 0 0 1 819.8 385.3 L781.5 397.1 A282 282 0 0 0 757.7 341.6 Z M824.6 402.6 A322 322 0 0 1 833.9 471.0 L793.9 472.1 A282 282 0 0 0 785.7 412.3 Z M833.9 489.0 A322 322 0 0 1 824.6 557.4 L785.7 547.7 A282 282 0 0 0 793.9 487.9 Z M819.8 574.7 A322 322 0 0 1 792.5 638.1 L757.7 618.4 A282 282 0 0 0 781.5 562.9 Z M783.3 653.5 A322 322 0 0 1 740.1 707.3 L711.8 679.1 A282 282 0 0 0 749.6 631.9 Z M727.0 719.7 A322 322 0 0 1 671.0 760.0 L651.3 725.2 A282 282 0 0 0 700.3 689.9 Z" fill="url(#arc)" stroke="url(#gold)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M779.9 487.5 A268 268 0 0 1 772.2 544.4 L758.6 541.0 A254 254 0 0 0 765.9 487.1 Z M768.2 558.8 A268 268 0 0 1 745.5 611.6 L733.3 604.7 A254 254 0 0 0 754.8 554.7 Z M737.8 624.4 A268 268 0 0 1 701.8 669.2 L691.9 659.3 A254 254 0 0 0 726.0 616.8 Z M691.0 679.5 A268 268 0 0 1 644.4 713.0 L637.5 700.9 A254 254 0 0 0 681.6 669.1 Z" fill="#f3d27a" stroke="#96703a" stroke-width="2" stroke-linejoin="round"/>
+    <!-- The shield: a gold rim, a deep blue face, and a lighter left half. -->
+    <path d="M512 214 Q610 250 706 244 L706 470 Q706 640 512 748 Q318 640 318 470 L318 244 Q414 250 512 214 Z" fill="url(#holy)" stroke="url(#gold)" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M512 248 Q598 278 676 274 L676 470 Q676 618 512 712 Q348 618 348 470 L348 274 Q426 278 512 248 Z" fill="url(#face)" stroke="#f0ca78" stroke-opacity="0.7" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M512 248 Q426 278 348 274 L348 470 Q348 618 512 712 Z" fill="url(#light)"/>
+    <!-- A radiant star and orb at the shield's heart. -->
+    <use href="#star" fill="#fff4cf" filter="url(#glow)" opacity="0.8"/>
+    <use href="#star" fill="url(#holy)" stroke="url(#gold)" stroke-width="6" stroke-linejoin="round"/>
+    <circle cx="512" cy="470" r="30" fill="url(#orb)" stroke="url(#gold)" stroke-width="5"/>
+    <!-- Fine outer and inner rings, as on the other Forever logos. -->
+    <circle cx="512" cy="480" r="338" fill="none" stroke="#f0ca78" stroke-opacity="0.45" stroke-width="2"/>
+    <circle cx="512" cy="480" r="350" fill="none" stroke="#b48b45" stroke-opacity="0.35" stroke-width="2" stroke-dasharray="3 12"/>
+    <!-- Three small sparkles drifting off the emblem. -->
+    <g fill="#fff4d6">
+      <path d="M262 286 Q265 303 282 306 Q265 309 262 326 Q259 309 242 306 Q259 303 262 286 Z"/>
+      <path d="M268 650 Q270 662 282 664 Q270 666 268 678 Q266 666 254 664 Q266 662 268 650 Z"/>
+      <path d="M856 300 Q858 309 867 311 Q858 313 856 322 Q854 313 845 311 Q854 309 856 300 Z"/>
+    </g>
+  </g>
+  <path d="M359 850H457 M567 850H665" fill="none" stroke="#b98e47" stroke-opacity="0.5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M512 837 L524 850 L512 863 L500 850 Z" fill="url(#gold)"/>
+</svg>

@@ -14,6 +14,7 @@ tested.
 | Additional categories | Combat (CurseForge allows up to 4; unrelated ones can send the project back for changes). |
 | Author shown | Dyre, set through the CurseForge account's username |
 | License | MIT License |
+| Logo | artwork/shields-up-forever-logo.png (1024 x 1024) |
 | Source | https://github.com/jbedworth/ShieldsUpForever |
 | Issues | https://github.com/jbedworth/ShieldsUpForever/issues |
 
