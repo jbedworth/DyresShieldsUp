@@ -63,7 +63,11 @@ local function fixture(options)
         if key then state.toc[key] = value end
     end
     env.C_AddOns = {GetAddOnMetadata = function(name, field)
-        equal(name, ADDON, "metadata uses the AddOn folder name")
+        if name ~= ADDON then
+            -- Another AddOn's title, for the note naming the AddOn that draws the ring.
+            local titles = {MageToolsForever = "Mage Tools Forever", WarlockToolsForever = "Warlock Tools Forever"}
+            return field == "Title" and titles[name] or nil
+        end
         return state.toc[field] or ""
     end}
     env.UnitClass = function(unit)
@@ -192,6 +196,10 @@ local function fixture(options)
             local object = {setting = setting, options = extra, tooltip = tooltip}
             function object:SetParentInitializer(parent, predicate)
                 self.parentInitializer, self.predicate = parent, predicate
+            end
+            object.modifyPredicates = {}
+            function object:AddModifyPredicate(predicate)
+                self.modifyPredicates[#self.modifyPredicates + 1] = predicate
             end
             category.initializers[#category.initializers + 1] = object
             return object
@@ -400,7 +408,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 0.3.0-beta by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 0.3.1-beta by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
@@ -737,6 +745,16 @@ test("with Mage Tools Forever running too, only one ring shows, and DSU says whe
     contains(state.last(), "shown by MageToolsForever")
     state.slash("options")
     contains(state.last(), "shown by MageToolsForever")
+    local page = state.categories["Dyre's Shields Up"]
+    for _, initializer in ipairs(page.initializers) do
+        equal(initializer.modifyPredicates[1](), false, initializer.setting.variable .. " is greyed out")
+        contains(initializer.tooltip, "Mage Tools Forever draws the shield display, so use its settings for it.")
+    end
+    local alone = fixture()
+    for _, initializer in ipairs(alone.categories["Dyre's Shields Up"].initializers) do
+        equal(initializer.modifyPredicates[1](), true, "not greyed while DSU draws the ring")
+        equal(initializer.tooltip:find("draws the shield display", 1, true), nil)
+    end
 end)
 test("a newer copy elsewhere takes over; DSU takes over from an older one", function()
     local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 9}}})

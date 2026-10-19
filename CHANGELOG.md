@@ -4,6 +4,10 @@ Player-facing changes for each Shields Up Forever release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 0.3.1-beta
+
+- If another of Dyre's AddOns draws the shield display (an older Mage Tools Forever or Warlock Tools Forever), DSU's settings are greyed out and name it. From 0.3.1, Mage Tools Forever and Warlock Tools Forever leave the shield display to DSU when it is installed.
+
 ## 0.3.0-beta
 
 - The sounds now come from **Dyre's Sounds**, so they are on your computer only once for all of Dyre's AddOns. The CurseForge app installs it for you; otherwise get it from CurseForge or github.com/jbedworth/DyresSounds. Without it, the shield display works as before but plays no sound, and DSU says so once in chat.

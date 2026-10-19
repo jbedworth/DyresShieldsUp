@@ -48,19 +48,44 @@ local function SliderOptions(minValue, maxValue, step)
     return options
 end
 
+-- The shield display draws in one AddOn only (Shield.lua's election); in the
+-- others its settings do nothing, so they are greyed out (author-approved) with
+-- a note naming the AddOn that draws it. Checked each time the page shows.
+local function ShieldOwnerNote(display)
+    if display.IsOwner() then
+        return ""
+    end
+    local owner = display.OwnerAddOn()
+    local title = owner and type(C_AddOns) == "table" and type(C_AddOns.GetAddOnMetadata) == "function"
+        and C_AddOns.GetAddOnMetadata(owner, "Title")
+    if type(title) ~= "string" or title == "" then
+        title = tostring(owner)
+    end
+    return " " .. title .. " draws the shield display, so use its settings for it."
+end
+
+local function GreyUnlessOwner(initializer, display)
+    if type(initializer) == "table" and type(initializer.AddModifyPredicate) == "function" then
+        initializer:AddModifyPredicate(function() return display.IsOwner() end)
+    end
+    return initializer
+end
+
 function DSU.InitializeOptions()
     if not HasSettingsAPI() then
         return
     end
     local display = DSU.ShieldDisplay
     category = Settings.RegisterVerticalLayoutCategory(TITLE)
-    Flag("DSU_SHIELD_ENABLED", "Shield display", "enabled", true,
+    local note = ShieldOwnerNote(display)
+    GreyUnlessOwner(Flag("DSU_SHIELD_ENABLED", "Shield display", "enabled", true,
         "A crescent beside your character that fills with your remaining shield, full when it lands. "
-            .. "If Mage Tools Forever or Warlock Tools Forever shows it instead, use that AddOn's settings.")
-    Flag("DSU_SHIELD_NUMBER", "Show the absorb amount", "number", true,
-        "Show your remaining absorb as a number under the crescent.")
-    local soundSwitch = Flag("DSU_SHIELD_BREAK_SOUND", "Sound when a shield ends", "breakSound", false,
-        "Play a sound when a shield in the icon row ends or breaks, also in combat.")
+            .. "If Mage Tools Forever or Warlock Tools Forever shows it instead, use that AddOn's settings."
+            .. note), display)
+    GreyUnlessOwner(Flag("DSU_SHIELD_NUMBER", "Show the absorb amount", "number", true,
+        "Show your remaining absorb as a number under the crescent." .. note), display)
+    local soundSwitch = GreyUnlessOwner(Flag("DSU_SHIELD_BREAK_SOUND", "Sound when a shield ends", "breakSound",
+        false, "Play a sound when a shield in the icon row ends or breaks, also in combat." .. note), display)
     -- Which sound, under its switch (author-approved: a default you can change).
     local sound = Proxy("DSU_SHIELD_BREAK_SOUND_CHOICE", Settings.VarType.String, "Sound",
         display.DEFAULT_BREAK_SOUND,
@@ -72,8 +97,9 @@ function DSU.InitializeOptions()
         end)
     -- The sounds come from Dyre's Sounds; without it the list is empty.
     local dropdown = Settings.CreateDropdown(category, sound, display.SoundChoices,
-        "The sound when a shield ends. Choosing one plays it once. The sounds come from Dyre's Sounds.")
+        "The sound when a shield ends. Choosing one plays it once. The sounds come from Dyre's Sounds." .. note)
     display.SetupSoundMenu(dropdown)
+    GreyUnlessOwner(dropdown, display)
     if type(dropdown.SetParentInitializer) == "function" then
         dropdown:SetParentInitializer(soundSwitch, function() return DSU.db.shield.breakSound end)
     end
@@ -83,14 +109,16 @@ function DSU.InitializeOptions()
             DSU.db.shield.scale = display.SanitizeScale(value)
             DSU.RefreshShield()
         end)
-    Settings.CreateSlider(category, scale, SliderOptions(display.SCALE_MIN, display.SCALE_MAX, display.SCALE_STEP),
-        "How big the shield display is, in percent.")
+    GreyUnlessOwner(Settings.CreateSlider(category, scale,
+        SliderOptions(display.SCALE_MIN, display.SCALE_MAX, display.SCALE_STEP),
+        "How big the shield display is, in percent." .. note), display)
     local unlocked = Proxy("DSU_UNLOCKED", Settings.VarType.Boolean, "Unlock to move it", false,
         function() return not DSU.db.shield.locked end,
         function(value) DSU.SetLocked(value ~= true) end)
-    Settings.CreateCheckbox(category, unlocked,
+    GreyUnlessOwner(Settings.CreateCheckbox(category, unlocked,
         "Show a sample of the whole display, outlined, so you can drag it; untick to lock it again. "
-            .. "/dsu unlock and /dsu lock do the same, and /dsu reset moves it back to its default place.")
+            .. "/dsu unlock and /dsu lock do the same, and /dsu reset moves it back to its default place."
+            .. note), display)
     Settings.RegisterAddOnCategory(category)
 end
 
