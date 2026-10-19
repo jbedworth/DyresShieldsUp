@@ -23,6 +23,9 @@ import build_release
 
 VERSIONS_URL = "https://wow.curseforge.com/api/game/wow/versions"
 UPLOAD_URL = "https://wow.curseforge.com/api/projects/{project_id}/upload-file"
+# Dyre's Sounds is required on CurseForge, so the app installs it with DSU;
+# the TOC lists it as OptionalDeps, so DSU still loads without it.
+RELATIONS = {"projects": [{"slug": "dyres-sounds", "type": "requiredDependency"}]}
 FOREVER_TYPE_ID = 88568
 TIMEOUT = 30
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -218,7 +221,7 @@ def publish(artifact_dir, project_id, game_version_id, tag):
     versions = request_json(opener, urllib.request.Request(VERSIONS_URL, headers=headers))
     verify_server_version(versions, game_version_id)
     metadata = {"gameVersions": [game_version_id], "releaseType": manifest["channel"],
-                "changelog": changelog, "changelogType": "markdown"}
+                "changelog": changelog, "changelogType": "markdown", "relations": RELATIONS}
     body, content_type = multipart(metadata, manifest["archive_name"], archive_bytes)
     upload_headers = dict(headers, **{"Content-Type": content_type})
     request = urllib.request.Request(UPLOAD_URL.format(project_id=project_id),

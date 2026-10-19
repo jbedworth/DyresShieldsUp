@@ -46,7 +46,7 @@ Per-file changelogs need no manual text: each CI upload uses the version's
 - Power Word: Shield in white, Ice Barrier blue, the wards in fire and frost, Warlock shields in purple, and any other absorb in gold.
 - Several shields at once? The crescent shows the total, and a row of icons shows which are up: your own class's shields, then Power Word: Shield and Blessing of Protection.
 - Mana Shield and Paladin bubbles drain with their time left in their own inner crescents.
-- Size 50-150%, an optional number, and an optional sound when a shield ends.
+- Size 50-150%, an optional number, and an optional sound when a shield ends (from Dyre's Sounds, which the CurseForge app installs with it).
 
 ### With Mage Tools Forever or Warlock Tools Forever
 They ship the same display. Installed together, you still see one ring, and Dyre's Shields Up tells you which AddOn draws it.

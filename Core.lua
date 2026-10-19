@@ -47,7 +47,8 @@ end
 -- files otherwise fails silently, because the client hides Lua errors by default.
 local REQUIRED_NAMESPACE = {"ParseCommand", "HandleCommand", "InitializeOptions", "OpenSettings"}
 local REQUIRED_SHIELD = {"Initialize", "Sanitize", "Refresh", "ApplyBreakSound", "PreviewBreakSound",
-    "SanitizeBreakSound", "ResetPosition", "ReportDebug", "IsOwner", "OwnerAddOn"}
+    "SanitizeBreakSound", "SoundChoices", "SetupSoundMenu", "ResetPosition", "ReportDebug", "IsOwner",
+    "OwnerAddOn"}
 
 local function CheckInstalledFiles()
     local display = DSU.ShieldDisplay

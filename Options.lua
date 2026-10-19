@@ -70,15 +70,10 @@ function DSU.InitializeOptions()
             DSU.RefreshShield()
             display.PreviewBreakSound()
         end)
-    local function SoundChoices()
-        local container = Settings.CreateControlTextContainer()
-        for _, choice in ipairs(display.BREAK_SOUNDS) do
-            container:Add(choice.key, choice.label)
-        end
-        return container:GetData()
-    end
-    local dropdown = Settings.CreateDropdown(category, sound, SoundChoices,
-        "The sound when a shield ends. Choosing one plays it once.")
+    -- The sounds come from Dyre's Sounds; without it the list is empty.
+    local dropdown = Settings.CreateDropdown(category, sound, display.SoundChoices,
+        "The sound when a shield ends. Choosing one plays it once. The sounds come from Dyre's Sounds.")
+    display.SetupSoundMenu(dropdown)
     if type(dropdown.SetParentInitializer) == "function" then
         dropdown:SetParentInitializer(soundSwitch, function() return DSU.db.shield.breakSound end)
     end

@@ -113,6 +113,51 @@ local function fixture(options)
     env.UnitHealthMax = function(unit) equal(unit, "player") return state.maxHealth end
     env.AbbreviateNumbers = function(value) return {abbreviated = value} end
     env.PlaySoundFile = function(file, channel) state.played = {file = file, channel = channel} end
+    -- Dyre's Sounds, faked with a few sounds of each kind (the library has its
+    -- own suite); options.noSounds leaves it out.
+    if not options.noSounds then
+        local catalog = {
+            fadingslow = {label = "Dyre's Picks: Fading slow disappear", file = "FadingSlowDisappear.mp3"},
+            magical = {label = "Dyre's Picks: Magical disappear", file = "MagicalDisappear.mp3"},
+            impspell = {label = "Imp: Spell chirp", id = 639156},
+            talent = {label = "Interface: Talent ready"},
+        }
+        local order = {"fadingslow", "magical", "impspell", "talent"}
+        local aliases = {effectmagical = "magical", pickmagical = "magical"}
+        local library = {}
+        function library.RequireContract(minimum)
+            if minimum <= 1 then return library end
+        end
+        function library.Resolve(key)
+            key = aliases[key] or key
+            return catalog[key] and key or nil
+        end
+        function library.AuraSound(key)
+            local sound = catalog[library.Resolve(key) or ""]
+            if sound and sound.file then
+                return {soundFileName = "Interface\\AddOns\\DyresSounds\\Sounds\\" .. sound.file}
+            elseif sound and sound.id then
+                return {soundFileID = sound.id}
+            end
+        end
+        function library.Play(key)
+            state.soundsPlayed = state.soundsPlayed or {}
+            state.soundsPlayed[#state.soundsPlayed + 1] = key
+        end
+        function library.Choices(filter)
+            return function()
+                local list = {}
+                for _, key in ipairs(order) do
+                    if filter ~= "aura" or library.AuraSound(key) then
+                        list[#list + 1] = {value = key, label = catalog[key].label}
+                    end
+                end
+                return list
+            end
+        end
+        function library.SetupMenu(initializer, filter) initializer.soundMenu = filter or "all" end
+        env.DyresSounds = library
+    end
     env.C_UnitAuras = {
         -- As in client, aura sound changes are refused during an encounter.
         AddAuraSound = function(trigger, info)
@@ -355,7 +400,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 0.2.1-beta by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 0.3.0-beta by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
@@ -567,12 +612,11 @@ test("the settings page changes the display", function()
     equal(state.auraSoundCount, 13, "every rank of Power Word: Shield and Blessing of Protection")
     equal(state.auraSounds[1].trigger, 2, "on removal")
     equal(state.auraSounds[1].info.soundFileName,
-        "Interface\\AddOns\\DyresShieldsUp\\Sounds\\FadingSlowDisappear.mp3",
-        "the AddOn's own file: the client plays no game sound by path")
-    equal(state.played.file, state.auraSounds[1].info.soundFileName, "turning it on plays it once")
-    state.played = nil
+        "Interface\\AddOns\\DyresSounds\\Sounds\\FadingSlowDisappear.mp3",
+        "Dyre's Sounds' file: DSU ships no sounds")
+    equal(table.concat(state.soundsPlayed, ","), "fadingslow", "turning it on plays it once")
     state.settings.DSU_SHIELD_SCALE:SetValue(90)
-    equal(state.played, nil, "other settings do not play it")
+    equal(#state.soundsPlayed, 1, "other settings do not play it")
     state.settings.DSU_SHIELD_ENABLED:SetValue(false)
     equal(ring.shown, false)
     local left = 0
@@ -589,21 +633,47 @@ test("the break sound is chosen in a dropdown under its switch; choosing one pla
     equal(dropdown.parentInitializer.setting.variable, "DSU_SHIELD_BREAK_SOUND", "under the sound switch")
     local labels = {}
     for _, choice in ipairs(dropdown.choices()) do labels[#labels + 1] = choice.label end
-    equal(table.concat(labels, ", "),
-        "Fading slow disappear, Disappear blow swoosh, Cartoon vanish, Disappear, Magical disappear, "
-            .. "Disappear (short), Disappearing swoosh, Teleport warp vanish, Slow swoosh")
+    equal(table.concat(labels, ", "), "Dyre's Picks: Fading slow disappear, Dyre's Picks: Magical disappear, "
+        .. "Imp: Spell chirp", "Dyre's Sounds' aura sounds only: a sound kit cannot be an aura sound")
+    equal(dropdown.soundMenu, "aura", "with Dyre's Sounds' nested menu")
     equal(state.suf.db.shield.breakSoundKey, "fadingslow", "the default")
     state.settings.DSU_SHIELD_BREAK_SOUND:SetValue(true)
-    state.played = nil
     state.settings.DSU_SHIELD_BREAK_SOUND_CHOICE:SetValue("magical")
     equal(state.suf.db.shield.breakSoundKey, "magical")
-    equal(state.played.file, "Interface\\AddOns\\DyresShieldsUp\\Sounds\\MagicalDisappear.mp3", "previewed")
+    equal(state.soundsPlayed[#state.soundsPlayed], "magical", "previewed")
     local live
     for _, sound in pairs(state.auraSounds) do live = sound end
-    equal(live.info.soundFileName, state.played.file, "registered again with the new sound")
-    state.settings.DSU_SHIELD_BREAK_SOUND_CHOICE:SetValue("nonsense")
-    equal(state.suf.db.shield.breakSoundKey, "fadingslow", "an unknown sound falls back to the default")
+    equal(live.info.soundFileName, "Interface\\AddOns\\DyresSounds\\Sounds\\MagicalDisappear.mp3",
+        "registered again with the new sound")
+    state.settings.DSU_SHIELD_BREAK_SOUND_CHOICE:SetValue("impspell")
+    for _, sound in pairs(state.auraSounds) do live = sound end
+    equal(live.info.soundFileID, 639156, "a game sound by file ID")
+    equal(live.info.soundFileName, nil)
+    for _, key in ipairs({"nonsense", "talent"}) do
+        state.settings.DSU_SHIELD_BREAK_SOUND_CHOICE:SetValue(key)
+        equal(state.suf.db.shield.breakSoundKey, "fadingslow", key .. " falls back to the default")
+    end
     equal(fixture({db = {shield = {breakSoundKey = 7}}}).suf.db.shield.breakSoundKey, "fadingslow", "repaired on load")
+    equal(fixture({db = {shield = {breakSoundKey = "effectmagical"}}}).suf.db.shield.breakSoundKey, "magical",
+        "a v6 key is mapped by Dyre's Sounds")
+end)
+test("without Dyre's Sounds the display works, keeps the choice, and says once what to install", function()
+    local state = fixture({noSounds = true, db = {shield = {breakSoundKey = "magical"}}})
+    equal(state.suf.db.shield.breakSoundKey, "magical", "a missing library never resets a choice")
+    state.cast(POWER_WORD_SHIELD)
+    equal(state.ring().shown, true)
+    state.clear()
+    state.settings.DSU_SHIELD_BREAK_SOUND:SetValue(true)
+    equal(state.auraSoundCount, nil, "no sound to register")
+    contains(state.last(), "Install Dyre's Sounds")
+    contains(state.last(), "Get it from CurseForge.")
+    equal(state.last():find("github", 1, true), nil, "CurseForge only, for now")
+    state.settings.DSU_SHIELD_SCALE:SetValue(90)
+    local count = 0
+    for _, message in ipairs(state.messages) do
+        if message:find("Install Dyre's Sounds", 1, true) then count = count + 1 end
+    end
+    equal(count, 1, "once per session")
 end)
 test("/dsu unlock shows a sample to drag; /dsu lock and the page's switch lock it", function()
     local state = fixture()
@@ -642,7 +712,7 @@ test("/dsu debug_shield runs every step", function()
     state.clear()
     state.slash("debug_shield")
     local text = table.concat(state.messages, "|")
-    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v7 (running)")
+    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v8 (running)")
     contains(text, "minimumAbsorb=75")
     contains(text, "the absorb total shows above your character")
     equal(text:find("failed", 1, true), nil, "every debug step ran")
@@ -669,7 +739,7 @@ test("with Mage Tools Forever running too, only one ring shows, and DSU says whe
     contains(state.last(), "shown by MageToolsForever")
 end)
 test("a newer copy elsewhere takes over; DSU takes over from an older one", function()
-    local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 8}}})
+    local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 9}}})
     equal(newer.suf.ShieldDisplay.IsOwner(), false)
     local older = fixture({shieldCopies = {{addon = "WarlockToolsForever", runs = true, version = 2}}})
     equal(older.suf.ShieldDisplay.IsOwner(), true)

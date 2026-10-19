@@ -87,6 +87,9 @@ carry over:
 - [ ] As a Paladin with Seal of Righteousness, its 10-20 point shield never
       shows the crescent, in or out of combat; a Power Word: Shield on you
       still does. `/dsu debug_shield` shows `minimumAbsorb`.
+- [ ] Without Dyre's Sounds, the display works and turning the break sound on
+      says once in chat to install it; with it, the sound list shows Dyre's
+      Picks and the imp sounds, and the chosen sound plays when a shield ends.
 - [ ] Settings: the switches, number, size slider, and break sound work;
       "Unlock to move it" and `/dsu unlock` show the full sample to drag;
       unticking or `/dsu lock` locks it, and the switch and commands stay in

@@ -31,7 +31,10 @@ shield is used up.
   bubbles (**Divine Shield**, **Divine Protection**, **Blessing of
   Protection**) in a gold crescent innermost of all.
 - **Display size** shrinks or grows it (50-150%). The number can be turned
-  off, and a sound can play when a shield ends or breaks, also in combat.
+  off, and a sound can play when a shield ends or breaks, also in combat. The
+  sounds come from **Dyre's Sounds**, which the CurseForge app installs with
+  DSU; otherwise get it from CurseForge or github.com/jbedworth/DyresSounds.
+  Without it, DSU works but plays no sound.
 - Locked (the default), it never blocks clicks on the world. **Unlock to move
   it** (or `/dsu unlock`) shows a full sample of every part to drag; `/dsu
   lock` locks it again and `/dsu reset` puts it back.

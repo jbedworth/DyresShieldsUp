@@ -20,15 +20,15 @@ Forever.
 
 - Shield.lua is byte-identical in MTF, Warlock Tools Forever (WTF), and DSU,
   and so are Textures/ShieldArc.tga, ShieldArcInner.tga, and
-  ShieldArcInnermost.tga (built by scripts/build_arc.py), and the break
-  sounds in Sounds/. Never edit DSU's
+  ShieldArcInnermost.tga (built by scripts/build_arc.py). Never edit DSU's
   copy alone: a behavior change goes into all three copies together, with
   `VERSION` bumped in each. tests/test_shield_copy.py compares the copies when
   sibling checkouts exist. Keep DSU's own needs in Core.lua and Options.lua.
 - Its whole interface: `ShieldDisplay.Initialize({settings, report,
   unlockHint})`, `Sanitize` (it owns its defaults, the lock included),
-  `SanitizeScale` and the scale constants, `BREAK_SOUNDS`,
-  `DEFAULT_BREAK_SOUND`, `SanitizeBreakSound`, `PreviewBreakSound`, `Refresh`,
+  `SanitizeScale` and the scale constants,
+  `DEFAULT_BREAK_SOUND`, `SanitizeBreakSound`, `SoundChoices`, `SetupSoundMenu`,
+  `PreviewBreakSound`, `Refresh`,
   `ApplyBreakSound`, `ResetPosition`, `ReportDebug`, `IsOwner`, and
   `OwnerAddOn`.
 - Scope (author-approved): Shield.lua stays as it is. Its icon row holds the
@@ -74,6 +74,17 @@ Forever.
   choosing one, plays it once. The sounds are licensed to Vertiso Corporation
   from Envato (Elements and AudioJungle; the author keeps the license files,
   not in Git); they are not under the MIT License.
+- Version 8 (with MTF and WTF): no AddOn ships sound files (author-approved:
+  one copy for all of Dyre's AddOns). The break sound comes from the library
+  Dyre's Sounds (`DyresSounds.RequireContract(1)`; its aura sounds: Dyre's
+  Picks and game file IDs), listed as `## OptionalDeps: DyresSounds` and as a
+  required dependency (slug `dyres-sounds`) on CurseForge. Interface:
+  `SoundChoices()` and `SetupSoundMenu(initializer)` replace `BREAK_SOUNDS`.
+  Without the library the display works, a saved choice is kept, and turning
+  the sound on says once in chat to install Dyre's Sounds.
+  A host with other sounds passes `missingSounds` to `Initialize`, and the
+  display calls it instead of its own line, so each AddOn says it once
+  (author-approved: one line per AddOn).
 - Version 7 (with MTF and WTF; found in client): every crescent is anchored
   to the display itself. In v5 and v6 the outer crescent was fitted to its
   parent, the minimum-absorb clipping frame, which reaches 40 px below the
@@ -175,7 +186,8 @@ Forever.
   and fails without it.
 - Package only DyresShieldsUp.toc, Commands.lua, Core.lua, Shield.lua,
   Options.lua, LICENSE, Textures/ShieldArc.tga, Textures/ShieldArcInner.tga,
-  Textures/ShieldArcInnermost.tga, and the break sounds in Sounds/ under the top-level `DyresShieldsUp/`
+  and Textures/ShieldArcInnermost.tga (no sounds: they ship only in Dyre's
+  Sounds) under the top-level `DyresShieldsUp/`
   folder, named `DyresShieldsUp-<version>-forever.zip`, with the builder's
   BigWigs-format `release.json` (flavor `forever`) attached for WowUp.
 - Publishing requires repository variables `ENABLE_GITHUB_RELEASES='true'`

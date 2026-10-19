@@ -4,6 +4,11 @@ Player-facing changes for each Shields Up Forever release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 0.3.0-beta
+
+- The sounds now come from **Dyre's Sounds**, so they are on your computer only once for all of Dyre's AddOns. The CurseForge app installs it for you; otherwise get it from CurseForge or github.com/jbedworth/DyresSounds. Without it, the shield display works as before but plays no sound, and DSU says so once in chat.
+- Your chosen sound when a shield ends is kept.
+
 ## 0.2.1-beta
 
 - Shield display: the outer crescent is centered with the inner ones again; since the last update it was drawn lower and taller than them.
