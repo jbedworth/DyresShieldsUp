@@ -4,6 +4,12 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.0.0
+
+The first full release for WoW: Forever, no longer marked beta: it was play tested on the Forever beta client 1.60.1, build 70450. CurseForge now offers it as a release, so the app updates it and installs what it needs for every player.
+
+- The CurseForge app installs Dyre's Toolkit and Dyre's Sounds with it.
+
 ## 0.3.2-beta
 
 - Works with **Dyre's Toolkit**: one layout mode for all of Dyre's AddOns. `/dsu unlock`, `/dyre unlock`, the minimap button, or **Unlock frames** on the Dyre's AddOns page unlocks every Dyre's AddOn's frames at once, and the shield display snaps to their frames and to the grid. Its settings move under **Options → AddOns → Dyre's AddOns → Dyre's Shields Up**, and it is listed under Dyre's Toolkit in the AddOn list. The CurseForge app installs the toolkit with DSU.

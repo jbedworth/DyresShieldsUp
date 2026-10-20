@@ -79,7 +79,7 @@ and its settings and commands point you to that AddOn's settings.
 
 ## Compatibility
 
-Beta, for the Forever beta client 1.60.1 (build 70450, Interface 16001). DSU keeps working
+For the Forever beta client 1.60.1 (build 70450, Interface 16001). DSU keeps working
 on later beta builds; if a client update removes an API it needs, it says so
 in chat and the display stays off.
 

@@ -272,7 +272,7 @@ def _release_notes(version, changes):
 
 ## Notes
 
-- Beta for WoW: Forever. Built for Forever beta {GAME_VERSION}, build {TARGET_BUILD},
+- For WoW: Forever. Built for Forever beta {GAME_VERSION}, build {TARGET_BUILD},
   Interface {INTERFACE}. DSU runs on later beta builds while the client provides
   the APIs it needs, and says so in chat if they are missing.
 - Shield display, for any class: a crescent that fills with your remaining

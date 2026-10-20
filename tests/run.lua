@@ -450,7 +450,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 0.3.2-beta by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.0.0 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(state.messages[3], "DSU: Install Dyre's Toolkit from CurseForge for one layout mode and settings "
         .. "home for all Dyre's AddOns.", "without the toolkit, said once")

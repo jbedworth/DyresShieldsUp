@@ -60,7 +60,7 @@ The CurseForge app installs Dyre's Toolkit with it: one layout mode for all of D
 - `/shieldsup` works the same, in case another AddOn uses `/dsu`.
 
 ### Compatibility
-Beta, for the Forever beta client 1.60.1 (tested on build 70450). If a client update removes an API it needs, it says so in chat and the display stays off.
+For the Forever beta client 1.60.1 (tested on build 70450). If a client update removes an API it needs, it says so in chat and the display stays off.
 
 WowUp users (2.24.0 or later): install from the repository URL; GitHub releases carry the Forever metadata WowUp needs.
 
