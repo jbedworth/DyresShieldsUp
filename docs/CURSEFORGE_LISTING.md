@@ -17,6 +17,7 @@ tested.
 | Logo | artwork/dyres-shields-up-logo.png (1024 x 1024) |
 | Source | https://github.com/jbedworth/DyresShieldsUp |
 | Issues | https://github.com/jbedworth/DyresShieldsUp/issues |
+| Donation | Ko-fi, https://ko-fi.com/dyre_janelle (the project's Donation field) |
 
 ## Summary
 
