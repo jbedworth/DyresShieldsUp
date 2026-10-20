@@ -155,8 +155,9 @@ class CurseForgeTests(unittest.TestCase):
         metadata = json.loads(parts[0].get_payload(decode=True))
         self.assertEqual(metadata, {"gameVersions": [12345], "releaseType": "beta",
                                    "changelog": notes, "changelogType": "markdown",
-                                   "relations": {"projects": [{"slug": "dyres-sounds",
-                                                               "type": "requiredDependency"}]}})
+                                   "relations": {"projects": [
+                                       {"slug": "dyres-sounds", "type": "requiredDependency"},
+                                       {"slug": "dyres-toolkit", "type": "requiredDependency"}]}})
         self.assertEqual(parts[1].get_filename(), self.archive.name)
         self.assertEqual(parts[1].get_content_type(), "application/zip")
         uploaded = parts[1].get_payload(decode=True)
@@ -168,7 +169,7 @@ class CurseForgeTests(unittest.TestCase):
     def test_manifest_every_derived_field_checked_before_network(self):
         mismatches = {"version": "0.2.0-beta", "tag": "v0.2.0-beta", "channel": "release",
                       "prerelease": False, "interface": 16002, "game_version": "1.60.2",
-                      "target_build": 70339, "archive_name": "../escape.zip", "sha256": "0" * 64}
+                      "target_build": 70451, "archive_name": "../escape.zip", "sha256": "0" * 64}
         for key, value in mismatches.items():
             with self.subTest(key=key):
                 self.write_manifest(dict(self.manifest, **{key: value}))
@@ -190,10 +191,10 @@ class CurseForgeTests(unittest.TestCase):
                     self.publish()
                 self.assert_no_network()
 
-    def test_dyres_sounds_is_the_only_relation_and_required(self):
-        # Required, so the CurseForge app installs the sounds with DSU.
+    def test_dyres_sounds_and_toolkit_are_the_relations_and_required(self):
+        # Required, so the CurseForge app installs the sounds and the toolkit with DSU.
         projects = publisher.RELATIONS["projects"]
-        self.assertEqual([p["slug"] for p in projects], ["dyres-sounds"])
+        self.assertEqual([p["slug"] for p in projects], ["dyres-sounds", "dyres-toolkit"])
         self.assertTrue(all(p["type"] == "requiredDependency" for p in projects))
 
     def test_strict_tag(self):

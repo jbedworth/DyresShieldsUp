@@ -4,8 +4,9 @@
 
 1. **Pinned source review.** Client behavior is read from Blizzard's FrameXML
    and generated API documentation at Gethe/wow-ui-source commit
-   `943764493e6b16d63ded3ab304150d1f05e58b57` (`1.60.1.70338`). Source
-   establishes declared APIs, templates, and code paths, not operational behavior.
+   `943764493e6b16d63ded3ab304150d1f05e58b57` (`1.60.1.70338`); the client
+   checks ran on build 70450, Interface 16001. Source establishes declared
+   APIs, templates, and code paths, not operational behavior.
 2. **Automated mock tests.** `tests/run.lua` exercises commands, saved
    settings, the shield display for each class, the settings page, and the
    election among AddOns shipping Shield.lua against a minimal mock of the
@@ -100,3 +101,19 @@ carry over:
       Priest with MTF installed, DSU's ring shows.
 - [ ] With Warlock Tools Forever on a Warlock: one ring shows, and the other
       AddOn says which one draws it.
+- [ ] With Dyre's Toolkit: no install line at login; the AddOn list shows DSU
+      under Dyre's Toolkit; DSU's page is under Options > AddOns > Dyre's
+      AddOns, and `/dsu` opens it (in combat, the toolkit says it opens out of
+      combat).
+- [ ] With Dyre's Toolkit: DSU's page has no "Unlock to move it" switch;
+      `/dsu unlock`, `/dyre unlock`, the minimap button, and "Unlock frames"
+      on the Dyre's AddOns page each unlock every Dyre's AddOn's frames with
+      one chat line from the toolkit and none from DSU; the shield sample
+      shows; locking any way hides it, and "Unlock frames" follows.
+- [ ] With Dyre's Toolkit: the shield display dropped near another Dyre's
+      frame snaps beside it, snaps to the grid with "Snap to the grid" on,
+      moves with a Shift-dragged group, and keeps its place after `/reload`;
+      `/dsu reset` still puts it back.
+- [ ] Without Dyre's Toolkit: DSU says once at login to install it from
+      CurseForge, and its own page (with "Unlock to move it"), lock, and
+      dragging work as before.

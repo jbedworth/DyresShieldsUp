@@ -11,6 +11,9 @@ local PRIMARY_SLASH = "/dsu"
 local BACKUP_SLASH = "/shieldsup"
 local MAX_SLASH_ALIASES = 10
 local UNLOCK_HINT = "Drag to move · /dsu lock when done"
+local TOOLKIT_CONTRACT = 1
+local INSTALL_TOOLKIT = "Install Dyre's Toolkit from CurseForge for one layout mode and settings home for all "
+    .. "Dyre's AddOns."
 DSU.available = false
 
 function DSU.Report(message)
@@ -110,10 +113,30 @@ function DSU.RefreshShield()
     DSU.ShieldDisplay.ApplyBreakSound()
 end
 
--- While unlocked, the display shows a sample of every part, outlined, to drag.
-function DSU.SetLocked(locked)
+-- Dyre's Toolkit, when installed: one layout mode, snapping, and settings
+-- home for every Dyre's AddOn. Without it DSU keeps its own.
+local function FindToolkit()
+    local toolkit = _G.DyresToolkit
+    if type(toolkit) == "table" and type(toolkit.RequireContract) == "function" then
+        return toolkit.RequireContract(TOOLKIT_CONTRACT)
+    end
+end
+
+-- Shows or hides the sample to drag, quietly: the toolkit says one line for all.
+local function ApplyLock(locked)
     DSU.db.shield.locked = locked
     DSU.RefreshShield()
+end
+
+-- While unlocked, the display shows a sample of every part, outlined, to drag.
+-- With the toolkit, every Dyre's AddOn unlocks together.
+function DSU.SetLocked(locked)
+    if DSU.toolkit then
+        DSU.toolkit.SetLocked(locked)
+        DSU.ShownElsewhere()
+        return
+    end
+    ApplyLock(locked)
     if DSU.ShownElsewhere() then
         return
     end
@@ -184,11 +207,25 @@ events:SetScript("OnEvent", function(self, event, loadedName)
         DSU.Report(message)
         return
     end
+    local toolkit = FindToolkit()
+    DSU.toolkit = toolkit
+    local layout
+    if toolkit then
+        -- The toolkit's frames start locked at login; DSU's follow.
+        DSU.db.shield.locked = toolkit.IsLocked()
+        layout = {register = toolkit.RegisterMovable, beginDrag = toolkit.BeginDrag, endDrag = toolkit.EndDrag}
+    else
+        DSU.Report(INSTALL_TOOLKIT)
+    end
     -- Any class: the display shows every absorb on you, and its icon row
     -- holds your own class's shields and the ones anyone can put on you.
     -- Called here rather than from each file's own PLAYER_LOGIN handler, so
     -- startup never depends on event handler order.
     DSU.ShieldDisplay.Initialize({settings = function() return DSU.db.shield end, report = DSU.Report,
-        unlockHint = UNLOCK_HINT})
+        unlockHint = UNLOCK_HINT, layout = layout})
     DSU.InitializeOptions()
+    if toolkit then
+        toolkit.RegisterAddOn({addon = addonName, title = Metadata("Title") or DEFAULT_TITLE,
+            setLocked = ApplyLock, openSettings = DSU.OpenSettings})
+    end
 end)

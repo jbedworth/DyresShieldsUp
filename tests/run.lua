@@ -192,6 +192,7 @@ local function fixture(options)
             state.categories[name] = category
             return category
         end
+        state.newCategory = newCategory
         local function initializer(category, setting, extra, tooltip)
             local object = {setting = setting, options = extra, tooltip = tooltip}
             function object:SetParentInitializer(parent, predicate)
@@ -242,6 +243,47 @@ local function fixture(options)
             end,
             OpenToCategory = function(id) state.opened = id end,
         }
+    end
+
+    -- Dyre's Toolkit, faked (it has its own suite); options.toolkit adds it.
+    -- Frames start locked; SetLocked calls each AddOn's setLocked and says one
+    -- line for all.
+    if options.toolkit then
+        local toolkit = {locked = true, members = {}, movables = {}, drags = {}, pages = {}}
+        function toolkit.RequireContract(required)
+            if required == 1 then return toolkit end
+        end
+        function toolkit.RegisterAddOn(info) toolkit.members[#toolkit.members + 1] = info return true end
+        function toolkit.IsLocked() return toolkit.locked end
+        function toolkit.SetLocked(locked)
+            toolkit.locked = locked == true
+            for _, info in ipairs(toolkit.members) do info.setLocked(toolkit.locked) end
+            state.messages[#state.messages + 1] = "Dyre: Frames " .. (toolkit.locked and "locked." or "unlocked.")
+        end
+        function toolkit.RegisterMovable(frame, save) toolkit.movables[frame] = save return true end
+        function toolkit.BeginDrag(frame) toolkit.drags[#toolkit.drags + 1] = "begin" frame:StartMoving() end
+        function toolkit.EndDrag(frame)
+            toolkit.drags[#toolkit.drags + 1] = "end"
+            frame:StopMovingOrSizing()
+            toolkit.movables[frame]({point = "CENTER", relativePoint = "BOTTOMLEFT", x = 400, y = 300})
+        end
+        function toolkit.RegisterSettingsCategory(name)
+            if not state.newCategory then return nil end
+            local page = state.newCategory(name)
+            page.parent = "Dyre's AddOns"
+            toolkit.pages[#toolkit.pages + 1] = page
+            return page, {}
+        end
+        function toolkit.OpenSettings(category)
+            if state.combat then return false end
+            state.opened = category:GetID()
+            return true
+        end
+        if options.toolkit == "newer" then
+            function toolkit.RequireContract() return nil end
+        end
+        env.DyresToolkit = toolkit
+        state.toolkit = toolkit
     end
 
     local function widget(kind, name, parent, template)
@@ -408,10 +450,21 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 0.3.1-beta by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 0.3.2-beta by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
-    equal(#state.messages, 2, "nothing else at login")
+    equal(state.messages[3], "DSU: Install Dyre's Toolkit from CurseForge for one layout mode and settings "
+        .. "home for all Dyre's AddOns.", "without the toolkit, said once")
+    equal(#state.messages, 3, "nothing else at login")
+    equal(state.messages[3]:find("github", 1, true), nil, "CurseForge only, for now")
     equal(state.toc.Category, "Buffs & Debuffs")
+    local withToolkit = fixture({toolkit = true})
+    equal(#withToolkit.messages, 2, "with the toolkit, no install line")
+end)
+test("the TOC lists the toolkit as optional and nests under it in the AddOn list", function()
+    local state = fixture()
+    equal(state.toc.OptionalDeps, "DyresSounds, DyresToolkit", "never ## Dependencies")
+    equal(state.toc.Dependencies, nil)
+    equal(state.toc.Group, "DyresToolkit")
 end)
 test("every class runs it", function()
     for _, class in ipairs({"PRIEST", "WARRIOR", "MAGE", "WARLOCK", "PALADIN", "ROGUE", "DRUID", "HUNTER",
@@ -720,10 +773,98 @@ test("/dsu debug_shield runs every step", function()
     state.clear()
     state.slash("debug_shield")
     local text = table.concat(state.messages, "|")
-    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v8 (running)")
+    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v9 (running)")
     contains(text, "minimumAbsorb=75")
     contains(text, "the absorb total shows above your character")
     equal(text:find("failed", 1, true), nil, "every debug step ran")
+end)
+
+-- Dyre's Toolkit ------------------------------------------------------------------
+
+test("with Dyre's Toolkit, DSU joins it: one lock, quiet, and its page under Dyre's AddOns", function()
+    local state = fixture({toolkit = true, db = {shield = {locked = false}}})
+    local toolkit = state.toolkit
+    equal(#toolkit.members, 1)
+    equal(toolkit.members[1].addon, "DyresShieldsUp")
+    equal(toolkit.members[1].title, "Dyre's Shields Up")
+    equal(state.suf.db.shield.locked, true, "frames start locked at login, as the toolkit's do")
+    local page = state.categories["Dyre's Shields Up"]
+    equal(page.parent, "Dyre's AddOns", "the page is the toolkit's")
+    equal(state.registered, nil, "no top-level page of its own")
+    local ring = state.ring()
+    state.clear()
+    state.slash("unlock")
+    equal(toolkit.locked, false, "/dsu unlock unlocks every Dyre's AddOn")
+    equal(state.suf.db.shield.locked, false)
+    equal(ring.shown, true)
+    equal(ring.sample.shown, true)
+    equal(ring.mover.shown, true)
+    equal(#state.messages, 1, "only the toolkit's line")
+    equal(state.last(), "Dyre: Frames unlocked.")
+    toolkit.SetLocked(true)
+    equal(state.suf.db.shield.locked, true, "the toolkit's lock locks DSU too")
+    equal(ring.shown, false)
+    state.slash("unlock")
+    state.slash("lock")
+    equal(toolkit.locked, true, "/dsu lock locks every Dyre's AddOn")
+    equal(state.suf.db.shield.locked, true)
+    equal(state.settings.DSU_UNLOCKED, nil, "no unlock switch of its own: the toolkit's page has one")
+    for _, initializer in ipairs(page.initializers) do
+        equal(initializer.tooltip:find("Unlock to move", 1, true), nil, initializer.setting.variable)
+    end
+    local variables = {}
+    for _, initializer in ipairs(page.initializers) do variables[#variables + 1] = initializer.setting.variable end
+    equal(table.concat(variables, ","), "DSU_SHIELD_ENABLED,DSU_SHIELD_NUMBER,DSU_SHIELD_BREAK_SOUND,"
+        .. "DSU_SHIELD_BREAK_SOUND_CHOICE,DSU_SHIELD_SCALE", "the rest of the page stays")
+    state.slash("reset")
+    contains(state.last(), "default place", "/dsu reset stays")
+end)
+test("with Dyre's Toolkit, the ring drags and snaps through it and saves its place", function()
+    local state = fixture({toolkit = true})
+    local ring = state.ring()
+    local toolkit = state.toolkit
+    equal(type(toolkit.movables[ring]), "function", "the ring is registered as movable")
+    ring.scripts.OnDragStart(ring)
+    equal(#toolkit.drags, 0, "locked: no drag")
+    state.slash("unlock")
+    ring.scripts.OnDragStart(ring)
+    equal(ring.moving, true)
+    ring.scripts.OnDragStop(ring)
+    equal(table.concat(toolkit.drags, ","), "begin,end")
+    equal(state.suf.db.shield.position.relativePoint, "BOTTOMLEFT", "saved as the toolkit placed it")
+    equal(state.suf.db.shield.position.x, 400)
+    state.slash("reset")
+    equal(state.suf.db.shield.position, nil)
+end)
+test("with Dyre's Toolkit, /dsu opens DSU's page through it, never in combat", function()
+    local state = fixture({toolkit = true})
+    state.slash("")
+    equal(state.opened, "id:Dyre's Shields Up")
+    state.opened = nil
+    state.combat = true
+    state.slash("options")
+    equal(state.opened, nil)
+    state.combat = false
+    state.toolkit.members[1].openSettings()
+    equal(state.opened, "id:Dyre's Shields Up", "the toolkit's menu opens it too")
+end)
+test("a toolkit with only a newer contract, or no settings, leaves DSU as it is today", function()
+    local newer = fixture({toolkit = "newer"})
+    equal(newer.said("Install Dyre's Toolkit"), true)
+    equal(#newer.toolkit.members, 0)
+    equal(newer.registered, newer.categories["Dyre's Shields Up"], "its own top-level page")
+    equal(newer.settings.DSU_UNLOCKED ~= nil, true, "with its own unlock switch, the only way to unlock there")
+    newer.slash("unlock")
+    equal(newer.toolkit.locked, true, "the toolkit's lock is not touched")
+    contains(newer.last(), "drag it where you want")
+    local ring = newer.ring()
+    ring.scripts.OnDragStart(ring)
+    equal(#newer.toolkit.drags, 0, "dragged freely")
+    equal(ring.moving, true)
+    local noPage = fixture({toolkit = true, noSettings = true})
+    equal(noPage.suf.available, true)
+    noPage.slash("")
+    contains(noPage.last(), "settings page is unavailable")
 end)
 
 -- Other AddOns shipping the display -------------------------------------------------
@@ -757,7 +898,8 @@ test("with Mage Tools Forever running too, only one ring shows, and DSU says whe
     end
 end)
 test("a newer copy elsewhere takes over; DSU takes over from an older one", function()
-    local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, version = 9}}})
+    local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true,
+        version = 10}}})
     equal(newer.suf.ShieldDisplay.IsOwner(), false)
     local older = fixture({shieldCopies = {{addon = "WarlockToolsForever", runs = true, version = 2}}})
     equal(older.suf.ShieldDisplay.IsOwner(), true)

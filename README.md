@@ -2,8 +2,9 @@
 
 The shield display from Mage Tools Forever, on its own, for any class in World
 of Warcraft: Forever (beta). Settings are in **Options → AddOns → Dyre's
-Shields Up**, or type `/dsu`. They are saved per character. Formerly Shields
-Up Forever (`/suf`).
+AddOns → Dyre's Shields Up** (with Dyre's Toolkit; without it, **Options →
+AddOns → Dyre's Shields Up**), or type `/dsu`. They are saved per character.
+Formerly Shields Up Forever (`/suf`).
 
 ## Shield display
 
@@ -39,6 +40,22 @@ shield is used up.
   it** (or `/dsu unlock`) shows a full sample of every part to drag; `/dsu
   lock` locks it again and `/dsu reset` puts it back.
 
+## With Dyre's Toolkit
+
+**Dyre's Toolkit** gives all of Dyre's AddOns one layout mode and one
+settings home. The CurseForge app installs it with DSU; without it, DSU works
+as it always has and says once at login to install it from CurseForge.
+
+- Unlocking (`/dsu unlock`, `/dyre unlock`, the toolkit's minimap button, or
+  **Unlock frames** on the Dyre's AddOns page) unlocks every Dyre's AddOn's
+  frames at once, and locking locks them all. DSU's own page then has no
+  unlock switch. Frames always start locked at login.
+- Dropped near another Dyre's AddOn's frame, the shield display snaps beside
+  it; Shift-drag moves a snapped group; with the toolkit's "Snap to the grid"
+  on, it snaps to the grid.
+- DSU's settings page sits under **Dyre's AddOns**, and DSU is listed under
+  Dyre's Toolkit in the in-game AddOn list.
+
 ## With Mage Tools Forever or Warlock Tools Forever
 
 Both ship the same display. Installed together, you still see one ring: the
@@ -54,7 +71,7 @@ and its settings and commands point you to that AddOn's settings.
 | Command | What it does |
 |---|---|
 | `/dsu`, `/dsu options` | Opens the settings |
-| `/dsu unlock`, `/dsu lock` | Unlocks the display to drag it, and locks it again |
+| `/dsu unlock`, `/dsu lock` | Unlocks the display to drag it, and locks it again (with Dyre's Toolkit, every Dyre's AddOn's frames) |
 | `/dsu reset` | Moves the display back to its default place |
 | `/dsu debug_shield` | Diagnostics: the absorb APIs, which AddOn draws the ring, each shield, and the icon row |
 
@@ -62,7 +79,7 @@ and its settings and commands point you to that AddOn's settings.
 
 ## Compatibility
 
-Beta, for the Forever beta client 1.60.1 (Interface 16001). DSU keeps working
+Beta, for the Forever beta client 1.60.1 (build 70450, Interface 16001). DSU keeps working
 on later beta builds; if a client update removes an API it needs, it says so
 in chat and the display stays off.
 

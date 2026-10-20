@@ -25,7 +25,7 @@ Forever.
   `VERSION` bumped in each. tests/test_shield_copy.py compares the copies when
   sibling checkouts exist. Keep DSU's own needs in Core.lua and Options.lua.
 - Its whole interface: `ShieldDisplay.Initialize({settings, report,
-  unlockHint})`, `Sanitize` (it owns its defaults, the lock included),
+  unlockHint, missingSounds, layout})`, `Sanitize` (it owns its defaults, the lock included),
   `SanitizeScale` and the scale constants,
   `DEFAULT_BREAK_SOUND`, `SanitizeBreakSound`, `SoundChoices`, `SetupSoundMenu`,
   `PreviewBreakSound`, `Refresh`,
@@ -85,6 +85,11 @@ Forever.
   A host with other sounds passes `missingSounds` to `Initialize`, and the
   display calls it instead of its own line, so each AddOn says it once
   (author-approved: one line per AddOn).
+- Version 9 (with MTF and WTF): a host may pass `layout = {register,
+  beginDrag, endDrag}` to `Initialize` (Dyre's Toolkit's `RegisterMovable`,
+  `BeginDrag`, `EndDrag`); the ring registers with it and drags through it,
+  so it snaps to the host's other frames and the grid, and the layout's
+  `save(position)` stores the position. Without one it drags freely as before.
 - Version 7 (with MTF and WTF; found in client): every crescent is anchored
   to the display itself. In v5 and v6 the outer crescent was fitted to its
   parent, the minimum-absorb clipping frame, which reaches 40 px below the
@@ -95,8 +100,20 @@ Forever.
 
 - One settings page (vertical layout, proxy settings on
   `DyresShieldsUpDB.shield`): Shield display, Show the absorb amount, Sound
-  when a shield ends and its Sound choice, Display size (50-150% in steps of 5), and Unlock to move
-  it. One frame, so no grid and no magnetic layout.
+  when a shield ends and its Sound choice, Display size (50-150% in steps of 5), and, without
+  Dyre's Toolkit, Unlock to move it.
+- Dyre's Toolkit (author-approved; `## OptionalDeps: DyresToolkit`, never
+  `## Dependencies`, and a CurseForge required dependency, slug
+  `dyres-toolkit`): with `DyresToolkit.RequireContract(1)`, Core registers DSU
+  (`RegisterAddOn`; its `setLocked` shows or hides the sample quietly, the
+  toolkit says one line for all), passes the toolkit's layout to the display,
+  and starts locked as the toolkit does; `/dsu unlock` and `lock` call the
+  toolkit's lock, and the page has no "Unlock to move it" switch (author-
+  approved: the toolkit's "Unlock frames" is the one switch); the page comes from
+  `RegisterSettingsCategory` and opens through `OpenSettings`. Without it (or
+  with only a newer contract), DSU keeps its own top-level page, lock, and free
+  dragging, and says once at login to install the toolkit, naming only
+  CurseForge.
 - Commands: `/dsu` and `/dsu options`, `unlock`, `lock`, `reset`,
   `debug_shield` (runs even when DSU is unavailable). Backup slash
   `/shieldsup`; a clash on `/dsu` is reported once at login.
@@ -124,17 +141,21 @@ Forever.
 - The project uses the MIT License. The public author name is `Dyre` (TOC
   `## Author`, login banner, listings); LICENSE keeps the legal name, John
   Bedworth, and the release builder requires that exact notice.
-- The TOC uses `## Category: Buffs & Debuffs`; keep it identical to the
-  CurseForge main category, because the in-game AddOn list groups by exact text.
+- The TOC has `## Group: DyresToolkit`, so the in-game AddOn list nests DSU
+  under Dyre's Toolkit with the rest of Dyre's AddOns (the family groups under
+  the toolkit). `## Category: Buffs & Debuffs` matters only when the toolkit
+  is missing; keep it identical to the CurseForge main category, because the
+  list groups by exact text.
 - Add no other runtime assets without agreement.
 - Git origin: git@github.com:jbedworth/DyresShieldsUp.git. Inspect Git state
   before acting and preserve user work. Text is LF under .gitattributes.
 
 ## Client and API verification
 
-- Target: Forever beta 1.60.1, build 70338, Interface 16001, Lua 5.1. Pin
-  source review to Gethe/wow-ui-source commit
-  `943764493e6b16d63ded3ab304150d1f05e58b57`. Treat target-client
+- Target: Forever beta 1.60.1, build 70450 (tested in client), Interface 16001,
+  Lua 5.1. Pin source review to Gethe/wow-ui-source commit
+  `943764493e6b16d63ded3ab304150d1f05e58b57` (the 70338 source; the client
+  was tested on 70450). Treat target-client
   documentation and FrameXML as authoritative; Retail and Classic examples are
   references only.
 - Do not gate the runtime on client version, build, Interface, or class. Gate

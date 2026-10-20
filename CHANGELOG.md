@@ -1,8 +1,14 @@
 # Changelog
 
-Player-facing changes for each Shields Up Forever release, newest first. The
+Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
+
+## 0.3.2-beta
+
+- Works with **Dyre's Toolkit**: one layout mode for all of Dyre's AddOns. `/dsu unlock`, `/dyre unlock`, the minimap button, or **Unlock frames** on the Dyre's AddOns page unlocks every Dyre's AddOn's frames at once, and the shield display snaps to their frames and to the grid. Its settings move under **Options → AddOns → Dyre's AddOns → Dyre's Shields Up**, and it is listed under Dyre's Toolkit in the AddOn list. The CurseForge app installs the toolkit with DSU.
+- With the toolkit, DSU's page no longer has its own "Unlock to move it" switch; the toolkit's **Unlock frames** does it for every Dyre's AddOn.
+- Without the toolkit, DSU works as before, with its own unlock switch, and says once at login to install it from CurseForge.
 
 ## 0.3.1-beta
 

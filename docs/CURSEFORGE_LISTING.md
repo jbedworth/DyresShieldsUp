@@ -51,13 +51,16 @@ Per-file changelogs need no manual text: each CI upload uses the version's
 ### With Mage Tools Forever or Warlock Tools Forever
 They ship the same display. Installed together, you still see one ring, and Dyre's Shields Up tells you which AddOn draws it.
 
+### With Dyre's Toolkit
+The CurseForge app installs Dyre's Toolkit with it: one layout mode for all of Dyre's AddOns. Unlocking unlocks every Dyre's AddOn's frames at once, the shield display snaps to their frames and to the grid, and its settings sit under Options > AddOns > Dyre's AddOns.
+
 ### Commands
-- `/dsu` or `/dsu options` opens the settings (Options > AddOns).
-- `/dsu unlock`, `/dsu lock`, and `/dsu reset` move the display.
+- `/dsu` or `/dsu options` opens the settings.
+- `/dsu unlock`, `/dsu lock`, and `/dsu reset` move the display (with Dyre's Toolkit, unlocking unlocks all of Dyre's AddOns).
 - `/shieldsup` works the same, in case another AddOn uses `/dsu`.
 
 ### Compatibility
-Beta, for the Forever beta client 1.60.1. If a client update removes an API it needs, it says so in chat and the display stays off.
+Beta, for the Forever beta client 1.60.1 (tested on build 70450). If a client update removes an API it needs, it says so in chat and the display stays off.
 
 WowUp users (2.24.0 or later): install from the repository URL; GitHub releases carry the Forever metadata WowUp needs.
 

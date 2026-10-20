@@ -1,7 +1,8 @@
 local _, DSU = ...
 
 -- One settings page in Blizzard's vertical layout, with proxy settings that
--- read and write DyresShieldsUpDB.shield directly.
+-- read and write DyresShieldsUpDB.shield directly: under Dyre's Toolkit's
+-- "Dyre's AddOns" when the toolkit is installed, else its own top-level page.
 local TITLE = "Dyre's Shields Up"
 local UNAVAILABLE = "The AddOn settings page is unavailable on this client. Use /dsu unlock, /dsu lock, "
     .. "and /dsu reset."
@@ -76,7 +77,8 @@ function DSU.InitializeOptions()
         return
     end
     local display = DSU.ShieldDisplay
-    category = Settings.RegisterVerticalLayoutCategory(TITLE)
+    local nested = DSU.toolkit and DSU.toolkit.RegisterSettingsCategory(TITLE)
+    category = nested or Settings.RegisterVerticalLayoutCategory(TITLE)
     local note = ShieldOwnerNote(display)
     GreyUnlessOwner(Flag("DSU_SHIELD_ENABLED", "Shield display", "enabled", true,
         "A crescent beside your character that fills with your remaining shield, full when it lands. "
@@ -112,6 +114,12 @@ function DSU.InitializeOptions()
     GreyUnlessOwner(Settings.CreateSlider(category, scale,
         SliderOptions(display.SCALE_MIN, display.SCALE_MAX, display.SCALE_STEP),
         "How big the shield display is, in percent." .. note), display)
+    -- A page under the toolkit's home is registered with it, and the toolkit's
+    -- "Unlock frames" switch there unlocks every Dyre's AddOn (author-approved:
+    -- no unlock switch of DSU's own then).
+    if nested then
+        return
+    end
     local unlocked = Proxy("DSU_UNLOCKED", Settings.VarType.Boolean, "Unlock to move it", false,
         function() return not DSU.db.shield.locked end,
         function(value) DSU.SetLocked(value ~= true) end)
@@ -128,5 +136,10 @@ function DSU.OpenSettings()
         return
     end
     DSU.ShownElsewhere()
+    if DSU.toolkit then
+        -- The toolkit's opener says so in combat instead.
+        DSU.toolkit.OpenSettings(category)
+        return
+    end
     Settings.OpenToCategory(category:GetID())
 end
