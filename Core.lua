@@ -3,17 +3,23 @@ local addonName, DSU = ...
 -- Dyre's Shields Up: the shield display from Mage Tools Forever on its own,
 -- for any class (a Priest in the author's group asked for it). Shield.lua is
 -- the shared component, byte-identical in every AddOn that ships it; this file
--- adapts it: saved settings, the lock, slash commands, and startup.
+-- adapts it: saved settings, the lock, slash commands, and startup. The ring
+-- is a Dyre's Toolkit widget (contract 2, author: "all the widget layout,
+-- snapping, modifier key move rules, etc., centralized in Dyre's Tools"): the
+-- toolkit places, drags, snaps, sizes from the center, outlines, and saves
+-- it; DSU never moves or scales it. Without contract 2 DSU stays off.
 local DEFAULT_TITLE = "Dyre's Shields Up"
 local READY_MESSAGE = "  Ready. Type /dsu to open the settings."
 local SLASH_KEY = "DYRESSHIELDSUP"
 local PRIMARY_SLASH = "/dsu"
 local BACKUP_SLASH = "/shieldsup"
 local MAX_SLASH_ALIASES = 10
-local UNLOCK_HINT = "Drag to move · /dsu lock when done"
-local TOOLKIT_CONTRACT = 1
-local INSTALL_TOOLKIT = "Install Dyre's Toolkit from CurseForge for one layout mode and settings home for all "
-    .. "Dyre's AddOns."
+local TOOLKIT_CONTRACT = 2
+local TOOLKIT_FUNCTIONS = {"RegisterAddOn", "RegisterSettingsCategory", "IsLocked", "SetLocked", "OpenSettings",
+    "CreateWidget", "AddWidgetSettings"}
+local TOOLKIT_MISSING = "Dyre's Shields Up needs Dyre's Toolkit 2.0 or later: install or update it from "
+    .. "CurseForge. DSU stays off until then."
+local WIDGET_KEY = "shield"
 DSU.available = false
 
 function DSU.Report(message)
@@ -113,38 +119,66 @@ function DSU.RefreshShield()
     DSU.ShieldDisplay.ApplyBreakSound()
 end
 
--- Dyre's Toolkit, when installed: one layout mode, snapping, and settings
--- home for every Dyre's AddOn. Without it DSU keeps its own.
-local function FindToolkit()
-    local toolkit = _G.DyresToolkit
-    if type(toolkit) == "table" and type(toolkit.RequireContract) == "function" then
-        return toolkit.RequireContract(TOOLKIT_CONTRACT)
+-- Dyre's Toolkit with the contract and functions DSU uses, else nil.
+function DSU.Toolkit()
+    local toolkit = rawget(_G, "DyresToolkit")
+    if type(toolkit) ~= "table" or type(toolkit.RequireContract) ~= "function" then
+        return nil
     end
+    toolkit = toolkit.RequireContract(TOOLKIT_CONTRACT)
+    if type(toolkit) ~= "table" then
+        return nil
+    end
+    for _, name in ipairs(TOOLKIT_FUNCTIONS) do
+        if type(toolkit[name]) ~= "function" then
+            return nil
+        end
+    end
+    return toolkit
 end
 
--- Shows or hides the sample to drag, quietly: the toolkit says one line for all.
-local function ApplyLock(locked)
-    DSU.db.shield.locked = locked
-    DSU.RefreshShield()
-end
-
--- While unlocked, the display shows a sample of every part, outlined, to drag.
--- With the toolkit, every Dyre's AddOn unlocks together.
+-- One layout mode for every Dyre's AddOn: the toolkit says one line for all,
+-- draws the outline, and calls the widget's onUnlock, which shows the sample.
 function DSU.SetLocked(locked)
-    if DSU.toolkit then
-        DSU.toolkit.SetLocked(locked)
-        DSU.ShownElsewhere()
-        return
-    end
-    ApplyLock(locked)
-    if DSU.ShownElsewhere() then
-        return
-    end
-    if locked then
-        DSU.Report("Shield display locked.")
-    else
-        DSU.Report("Shield display unlocked: drag it where you want, then type /dsu lock.")
-    end
+    DSU.toolkit.SetLocked(locked)
+    DSU.ShownElsewhere()
+end
+
+-- The display hands its built ring over (Shield.lua's layout.adopt), and the
+-- ring becomes a widget whose store is DSU's shield settings: the saved place
+-- and size (keys position and scale) carry over as they are. No widget
+-- opacity: the ring's inner frame fades with the secret absorb.
+local function PartSize(label)
+    local display = DSU.ShieldDisplay
+    return {min = display.SCALE_MIN, max = display.SCALE_MAX, step = display.SCALE_STEP,
+        default = display.DEFAULT_SCALE, label = label, percent = label ~= nil or nil}
+end
+
+local function AdoptRing(frame)
+    local display = DSU.ShieldDisplay
+    DSU.shieldWidget = DSU.toolkit.CreateWidget({
+        addon = addonName,
+        key = WIDGET_KEY,
+        title = Metadata("Title") or DEFAULT_TITLE,
+        frame = frame,
+        store = DSU.db.shield,
+        width = display.SIZE,
+        height = display.SIZE,
+        point = display.DEFAULT_PLACE,
+        -- The crescents' size, then the number's and the icon row's, which
+        -- the display keeps apart from it (author-approved).
+        sizes = {scale = PartSize(), textScale = PartSize("Text size (%)"), iconScale = PartSize("Icon size (%)")},
+        sizeOrder = {"scale", "textScale", "iconScale"},
+        onLayout = function() DSU.ShieldDisplay.Refresh() end,
+        onUnlock = function(_, unlocked)
+            DSU.db.shield.locked = not unlocked
+            DSU.RefreshShield()
+        end,
+    })
+end
+
+local function ResetRing()
+    DSU.shieldWidget:ResetPosition()
 end
 
 function DSU.Unlock()
@@ -207,25 +241,22 @@ events:SetScript("OnEvent", function(self, event, loadedName)
         DSU.Report(message)
         return
     end
-    local toolkit = FindToolkit()
-    DSU.toolkit = toolkit
-    local layout
-    if toolkit then
-        -- The toolkit's frames start locked at login; DSU's follow.
-        DSU.db.shield.locked = toolkit.IsLocked()
-        layout = {register = toolkit.RegisterMovable, beginDrag = toolkit.BeginDrag, endDrag = toolkit.EndDrag}
-    else
-        DSU.Report(INSTALL_TOOLKIT)
+    local toolkit = DSU.Toolkit()
+    if not toolkit then
+        DSU.available = false
+        DSU.Report(TOOLKIT_MISSING)
+        return
     end
+    DSU.toolkit = toolkit
+    -- The toolkit's frames start locked at login; DSU's follow.
+    DSU.db.shield.locked = toolkit.IsLocked()
     -- Any class: the display shows every absorb on you, and its icon row
     -- holds your own class's shields and the ones anyone can put on you.
     -- Called here rather than from each file's own PLAYER_LOGIN handler, so
     -- startup never depends on event handler order.
     DSU.ShieldDisplay.Initialize({settings = function() return DSU.db.shield end, report = DSU.Report,
-        unlockHint = UNLOCK_HINT, layout = layout})
+        layout = {adopt = AdoptRing, resetPosition = ResetRing}})
     DSU.InitializeOptions()
-    if toolkit then
-        toolkit.RegisterAddOn({addon = addonName, title = Metadata("Title") or DEFAULT_TITLE,
-            setLocked = ApplyLock, openSettings = DSU.OpenSettings})
-    end
+    toolkit.RegisterAddOn({addon = addonName, title = Metadata("Title") or DEFAULT_TITLE,
+        openSettings = DSU.OpenSettings})
 end)

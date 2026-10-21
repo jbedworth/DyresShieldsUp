@@ -101,19 +101,33 @@ carry over:
       Priest with MTF installed, DSU's ring shows.
 - [ ] With Warlock Tools Forever on a Warlock: one ring shows, and the other
       AddOn says which one draws it.
-- [ ] With Dyre's Toolkit: no install line at login; the AddOn list shows DSU
-      under Dyre's Toolkit; DSU's page is under Options > AddOns > Dyre's
-      AddOns, and `/dsu` opens it (in combat, the toolkit says it opens out of
-      combat).
-- [ ] With Dyre's Toolkit: DSU's page has no "Unlock to move it" switch;
-      `/dsu unlock`, `/dyre unlock`, the minimap button, and "Unlock frames"
-      on the Dyre's AddOns page each unlock every Dyre's AddOn's frames with
-      one chat line from the toolkit and none from DSU; the shield sample
-      shows; locking any way hides it, and "Unlock frames" follows.
-- [ ] With Dyre's Toolkit: the shield display dropped near another Dyre's
-      frame snaps beside it, snaps to the grid with "Snap to the grid" on,
-      moves with a Shift-dragged group, and keeps its place after `/reload`;
-      `/dsu reset` still puts it back.
-- [ ] Without Dyre's Toolkit: DSU says once at login to install it from
-      CurseForge, and its own page (with "Unlock to move it"), lock, and
-      dragging work as before.
+- [ ] The AddOn list shows DSU under Dyre's Toolkit; DSU's page is Options >
+      AddOns > Dyre's AddOns > Shields Up, and `/dsu` opens it (in combat, the
+      toolkit says it opens out of combat).
+- [ ] After updating from 1.0.0, the shield display is where it was and the
+      same size.
+- [ ] Display size: dragging the slider grows and shrinks the crescents
+      (Mana Shield's and the bubbles' too) from their center, without
+      drifting, while the number and the icons keep their size and stay under
+      the crescent's foot. Text size and Icon size change only the number and
+      only the icons. Each gold mark sits at 100%, and Reset size puts all
+      three back. Sizes and place are kept after `/reload`.
+- [ ] A tiny absorb (Seal of Righteousness) shows neither the crescent nor
+      the number, at any Text size.
+- [ ] `/dsu unlock`, `/dyre unlock`, the minimap button, and "Unlock frames"
+      each unlock every Dyre's AddOn's frames with one chat line from the
+      toolkit and none from DSU; the shield sample and the toolkit's gold
+      outline show and the display takes the mouse; locking any way hides
+      them and clicks pass through again.
+- [ ] The shield display dropped near another Dyre's frame snaps beside it,
+      snaps to the grid with "Snap to the grid" on, moves with a
+      Shift-dragged group, and keeps its place after `/reload`; `/dsu reset`
+      puts it back.
+- [ ] The absorb fade still works: the crescent fades out the moment a
+      shield is used up, also in combat, and tiny absorbs stay hidden.
+- [ ] No BugSack (or chat) errors at login, unlocking, dragging, resizing,
+      in combat, or on `/dsu debug_shield`.
+- [ ] With Dyre's Toolkit disabled (or older than 2.0), DSU stays off and
+      says once to install it from CurseForge.
+- [ ] With an MTF or WTF that ships Shield.lua v10 on a Mage or Warlock
+      without DSU: changing its display size keeps the ring's center.

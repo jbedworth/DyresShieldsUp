@@ -1,8 +1,8 @@
 local _, DSU = ...
 
 -- One settings page in Blizzard's vertical layout, with proxy settings that
--- read and write DyresShieldsUpDB.shield directly: under Dyre's Toolkit's
--- "Dyre's AddOns" when the toolkit is installed, else its own top-level page.
+-- read and write DyresShieldsUpDB.shield directly, under Dyre's Toolkit's
+-- "Dyre's AddOns" (its own top-level page only if the toolkit offers none).
 local TITLE = "Dyre's Shields Up"
 local UNAVAILABLE = "The AddOn settings page is unavailable on this client. Use /dsu unlock, /dsu lock, "
     .. "and /dsu reset."
@@ -77,7 +77,7 @@ function DSU.InitializeOptions()
         return
     end
     local display = DSU.ShieldDisplay
-    local nested = DSU.toolkit and DSU.toolkit.RegisterSettingsCategory(TITLE)
+    local nested, layout = DSU.toolkit.RegisterSettingsCategory(TITLE)
     category = nested or Settings.RegisterVerticalLayoutCategory(TITLE)
     local note = ShieldOwnerNote(display)
     GreyUnlessOwner(Flag("DSU_SHIELD_ENABLED", "Shield display", "enabled", true,
@@ -105,15 +105,32 @@ function DSU.InitializeOptions()
     if type(dropdown.SetParentInitializer) == "function" then
         dropdown:SetParentInitializer(soundSwitch, function() return DSU.db.shield.breakSound end)
     end
-    local scale = Proxy("DSU_SHIELD_SCALE", Settings.VarType.Number, "Display size (%)", display.DEFAULT_SCALE,
-        function() return DSU.db.shield.scale end,
-        function(value)
-            DSU.db.shield.scale = display.SanitizeScale(value)
-            DSU.RefreshShield()
-        end)
-    GreyUnlessOwner(Settings.CreateSlider(category, scale,
-        SliderOptions(display.SCALE_MIN, display.SCALE_MAX, display.SCALE_STEP),
-        "How big the shield display is, in percent." .. note), display)
+    if DSU.shieldWidget then
+        -- The ring is a widget: the toolkit's size slider (from the center,
+        -- with its default mark) and "Reset size".
+        DSU.toolkit.AddWidgetSettings(category, layout, DSU.shieldWidget, {
+            labels = {scale = "Display size (%)"},
+            tooltips = {
+                scale = "How big the crescents are, in percent. They grow and shrink from their center; the "
+                    .. "number and the icons keep their own sizes.",
+                textScale = "How big the absorb number is, in percent, whatever the crescents' size.",
+                iconScale = "How big the icons under the number are, in percent, whatever the crescents' size.",
+            },
+            resetTooltip = "The crescents, the number, and the icons back to 100%.",
+        })
+    else
+        -- Another AddOn draws the ring, so this only keeps the saved size.
+        local scale = Proxy("DSU_SHIELD_SCALE", Settings.VarType.Number, "Display size (%)",
+            display.DEFAULT_SCALE,
+            function() return DSU.db.shield.scale end,
+            function(value)
+                DSU.db.shield.scale = display.SanitizeScale(value)
+                DSU.RefreshShield()
+            end)
+        GreyUnlessOwner(Settings.CreateSlider(category, scale,
+            SliderOptions(display.SCALE_MIN, display.SCALE_MAX, display.SCALE_STEP),
+            "How big the shield display is, in percent." .. note), display)
+    end
     -- A page under the toolkit's home is registered with it, and the toolkit's
     -- "Unlock frames" switch there unlocks every Dyre's AddOn (author-approved:
     -- no unlock switch of DSU's own then).
@@ -136,10 +153,6 @@ function DSU.OpenSettings()
         return
     end
     DSU.ShownElsewhere()
-    if DSU.toolkit then
-        -- The toolkit's opener says so in combat instead.
-        DSU.toolkit.OpenSettings(category)
-        return
-    end
-    Settings.OpenToCategory(category:GetID())
+    -- The toolkit's opener says so in combat instead.
+    DSU.toolkit.OpenSettings(category)
 end

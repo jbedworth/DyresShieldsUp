@@ -47,17 +47,17 @@ Per-file changelogs need no manual text: each CI upload uses the version's
 - Power Word: Shield in white, Ice Barrier blue, the wards in fire and frost, Warlock shields in purple, and any other absorb in gold.
 - Several shields at once? The crescent shows the total, and a row of icons shows which are up: your own class's shields, then Power Word: Shield and Blessing of Protection.
 - Mana Shield and Paladin bubbles drain with their time left in their own inner crescents.
-- Size 50-150%, an optional number, and an optional sound when a shield ends (from Dyre's Sounds, which the CurseForge app installs with it).
+- Crescent, text, and icon sizes 50-150% each, an optional number, and an optional sound when a shield ends (from Dyre's Sounds, which the CurseForge app installs with it).
 
 ### With Mage Tools Forever or Warlock Tools Forever
 They ship the same display. Installed together, you still see one ring, and Dyre's Shields Up tells you which AddOn draws it.
 
 ### With Dyre's Toolkit
-The CurseForge app installs Dyre's Toolkit with it: one layout mode for all of Dyre's AddOns. Unlocking unlocks every Dyre's AddOn's frames at once, the shield display snaps to their frames and to the grid, and its settings sit under Options > AddOns > Dyre's AddOns.
+Needs Dyre's Toolkit 2.0 or later, which the CurseForge app installs with it: one layout mode for all of Dyre's AddOns. The shield display is a toolkit widget: unlocking unlocks every Dyre's AddOn's frames at once, the display snaps to their frames and to the grid, Display size grows the crescents from their center while Text size and Icon size keep the number and the icons as you like them, and its settings sit under Options > AddOns > Dyre's AddOns.
 
 ### Commands
 - `/dsu` or `/dsu options` opens the settings.
-- `/dsu unlock`, `/dsu lock`, and `/dsu reset` move the display (with Dyre's Toolkit, unlocking unlocks all of Dyre's AddOns).
+- `/dsu unlock`, `/dsu lock`, and `/dsu reset` move the display (unlocking unlocks all of Dyre's AddOns).
 - `/shieldsup` works the same, in case another AddOn uses `/dsu`.
 
 ### Compatibility

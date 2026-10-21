@@ -26,6 +26,11 @@ end
 
 local ADDON = "DyresShieldsUp"
 local RUNTIME_FILES = {"Commands.lua", "Core.lua", "Shield.lua", "Options.lua"}
+-- Dyre's Toolkit's runtime files, without the minimap (it needs the embedded
+-- libraries); tests/toolkit holds a copy, checked against ../DyresToolkit.
+local TOOLKIT_FILES = {"Core.lua", "Layout.lua", "Widgets.lua", "Settings.lua"}
+local WIDGET_SCALE = "DYRE_DYRESSHIELDSUP_SHIELD_SCALE"
+local PAGE = "Shields Up"
 local SPELLS = {
     [11426] = "Ice Barrier", [13031] = "Ice Barrier", [1463] = "Mana Shield", [543] = "Fire Ward",
     [6143] = "Frost Ward", [17] = "Power Word: Shield", [592] = "Power Word: Shield", [6229] = "Shadow Ward",
@@ -186,8 +191,8 @@ local function fixture(options)
 
     -- Settings: proxy settings with getters and setters, as the client builds them.
     if not options.noSettings then
-        local function newCategory(name)
-            local category = {name = name, initializers = {}}
+        local function newCategory(name, parent)
+            local category = {name = name, initializers = {}, parent = parent, buttons = {}}
             function category:GetID() return "id:" .. name end
             state.categories[name] = category
             return category
@@ -209,6 +214,14 @@ local function fixture(options)
         env.Settings = {
             VarType = {Boolean = "boolean", Number = "number", String = "string"},
             RegisterVerticalLayoutCategory = function(name) return newCategory(name) end,
+            -- Returns the page and its layout, as the client does.
+            RegisterVerticalLayoutSubcategory = function(parent, name)
+                local page = newCategory(name, parent)
+                local layout = {}
+                function layout:AddInitializer(button) page.buttons[#page.buttons + 1] = button end
+                return page, layout
+            end,
+            NotifyUpdate = function() end,
             RegisterProxySetting = function(category, variable, variableType, name, default, getValue, setValue)
                 equal(state.settings[variable], nil, "setting variables are unique")
                 local setting = {category = category, variable = variable, type = variableType, name = name,
@@ -227,7 +240,7 @@ local function fixture(options)
             end,
             CreateSliderOptions = function(minValue, maxValue, step)
                 local object = {minValue = minValue, maxValue = maxValue, step = step}
-                function object:SetLabelFormatter(label) self.label = label end
+                function object:SetLabelFormatter(label, formatter) self.label, self.formatter = label, formatter end
                 return object
             end,
             CreateControlTextContainer = function()
@@ -243,47 +256,6 @@ local function fixture(options)
             end,
             OpenToCategory = function(id) state.opened = id end,
         }
-    end
-
-    -- Dyre's Toolkit, faked (it has its own suite); options.toolkit adds it.
-    -- Frames start locked; SetLocked calls each AddOn's setLocked and says one
-    -- line for all.
-    if options.toolkit then
-        local toolkit = {locked = true, members = {}, movables = {}, drags = {}, pages = {}}
-        function toolkit.RequireContract(required)
-            if required == 1 then return toolkit end
-        end
-        function toolkit.RegisterAddOn(info) toolkit.members[#toolkit.members + 1] = info return true end
-        function toolkit.IsLocked() return toolkit.locked end
-        function toolkit.SetLocked(locked)
-            toolkit.locked = locked == true
-            for _, info in ipairs(toolkit.members) do info.setLocked(toolkit.locked) end
-            state.messages[#state.messages + 1] = "Dyre: Frames " .. (toolkit.locked and "locked." or "unlocked.")
-        end
-        function toolkit.RegisterMovable(frame, save) toolkit.movables[frame] = save return true end
-        function toolkit.BeginDrag(frame) toolkit.drags[#toolkit.drags + 1] = "begin" frame:StartMoving() end
-        function toolkit.EndDrag(frame)
-            toolkit.drags[#toolkit.drags + 1] = "end"
-            frame:StopMovingOrSizing()
-            toolkit.movables[frame]({point = "CENTER", relativePoint = "BOTTOMLEFT", x = 400, y = 300})
-        end
-        function toolkit.RegisterSettingsCategory(name)
-            if not state.newCategory then return nil end
-            local page = state.newCategory(name)
-            page.parent = "Dyre's AddOns"
-            toolkit.pages[#toolkit.pages + 1] = page
-            return page, {}
-        end
-        function toolkit.OpenSettings(category)
-            if state.combat then return false end
-            state.opened = category:GetID()
-            return true
-        end
-        if options.toolkit == "newer" then
-            function toolkit.RequireContract() return nil end
-        end
-        env.DyresToolkit = toolkit
-        state.toolkit = toolkit
     end
 
     local function widget(kind, name, parent, template)
@@ -305,7 +277,24 @@ local function fixture(options)
         function object:SetAlpha(value) self.alpha = value end
         function object:GetAlpha() return self.alpha or 1 end
         function object:SetScale(value) self.scale = value end
+        function object:GetScale() return self.scale or 1 end
+        function object:GetEffectiveScale()
+            local parentScale = 1
+            if self.parent and self.parent.GetEffectiveScale then parentScale = self.parent:GetEffectiveScale() end
+            return (self.scale or 1) * parentScale
+        end
         function object:SetSize(width, height) self.width, self.height = width, height end
+        function object:GetWidth() return self.width or 0 end
+        function object:GetHeight() return self.height or 0 end
+        function object:GetNumPoints() return #self.points end
+        -- As in client, in the frame's own units; nothing while unplaced.
+        function object:GetCenter()
+            if self ~= env.UIParent and #self.points == 0 then return end
+            local x, y = state.absCenter(self)
+            local scale = self:GetEffectiveScale()
+            return x / scale, y / scale
+        end
+        function object:IsProtected() return false end
         function object:SetShown(value)
             if value then self:Show() else self:Hide() end
         end
@@ -369,6 +358,28 @@ local function fixture(options)
         return frame
     end
     env.UIParent = widget("Frame", "UIParent")
+    env.UIParent.width, env.UIParent.height = 1000, 800
+    env.IsShiftKeyDown = function() return state.shift == true end
+    env.IsControlKeyDown = function() return state.ctrl == true end
+    env.CreateSettingsButtonInitializer = function(name, buttonText, onClick, tooltip)
+        return {button = true, name = name, buttonText = buttonText, onClick = onClick, tooltip = tooltip}
+    end
+    local SPOTS = {CENTER = {0.5, 0.5}, BOTTOMLEFT = {0, 0}, TOP = {0.5, 1}, TOPLEFT = {0, 1}, LEFT = {0, 0.5},
+        BOTTOMRIGHT = {1, 0}, RIGHT = {1, 0.5}, BOTTOM = {0.5, 0}}
+    -- Screen position of a frame's center, from its last point.
+    function state.absCenter(frame)
+        if frame == env.UIParent or frame == nil then return 500, 400 end
+        local point = frame.points[#frame.points]
+        local relative = point[2] or env.UIParent
+        local relativeScale = relative == env.UIParent and 1 or relative:GetEffectiveScale()
+        local rx, ry = state.absCenter(relative)
+        local spot = SPOTS[point[3]] or SPOTS.CENTER
+        local width = (relative.width or 0) * relativeScale
+        local height = (relative.height or 0) * relativeScale
+        local scale = frame:GetEffectiveScale()
+        return rx + (spot[1] - 0.5) * width + (point[4] or 0) * scale,
+            ry + (spot[2] - 0.5) * height + (point[5] or 0) * scale
+    end
     function state.emit(event, ...)
         for _, frame in ipairs(state.frames) do
             local unit = frame.unitEvents[event]
@@ -380,9 +391,29 @@ local function fixture(options)
     end
 
     for _, name in ipairs(options.remove or {}) do env[name] = nil end
+    -- Dyre's Toolkit, its real files: DSU requires contract 2. options.noToolkit
+    -- leaves it out; options.oldToolkit offers contract 1 only.
+    if not options.noToolkit then
+        state.toolkitNS = {InitializeMinimap = function() end}
+        for _, path in ipairs(TOOLKIT_FILES) do
+            local chunk = assert(loadfile("tests/toolkit/" .. path))
+            setfenv(chunk, env)
+            chunk("DyresToolkit", state.toolkitNS)
+        end
+        state.toolkit = env.DyresToolkit
+        if options.oldToolkit then
+            local require = env.DyresToolkit.RequireContract
+            env.DyresToolkit.RequireContract = function(n)
+                if n >= 2 then return nil end
+                return require(n)
+            end
+        end
+    end
     -- Other AddOns shipping Shield.lua, loaded in folder order: {addon, version,
-    -- before, runs}; each gets its own namespace. A copy whose AddOn runs (MTF
-    -- on a Mage) initializes it at login, before or after DSU as given.
+    -- before, runs, layout}; each gets its own namespace. A copy whose AddOn runs
+    -- (MTF on a Mage) initializes it at login, before or after DSU as given;
+    -- layout "v9" passes the toolkit's RegisterMovable, BeginDrag, and EndDrag,
+    -- as MTF 1.1.0 and WTF 1.1.0 do.
     state.copies = {}
     local function loadShieldCopy(spec)
         local source = assert(io.open("Shield.lua")):read("*a")
@@ -399,10 +430,17 @@ local function fixture(options)
             login:RegisterEvent("PLAYER_LOGIN")
             login:SetScript("OnEvent", function()
                 namespace.said = {}
+                local layout
+                if spec.layout == "v9" then
+                    local toolkit = env.DyresToolkit
+                    layout = {register = toolkit.RegisterMovable, beginDrag = toolkit.BeginDrag,
+                        endDrag = toolkit.EndDrag}
+                end
                 namespace.ShieldDisplay.Initialize({settings = function() return namespace.settings end,
-                    report = function(message) namespace.said[#namespace.said + 1] = message end})
+                    report = function(message) namespace.said[#namespace.said + 1] = message end,
+                    layout = layout})
             end)
-            namespace.settings = namespace.ShieldDisplay.Sanitize({})
+            namespace.settings = namespace.ShieldDisplay.Sanitize(spec.settings or {})
         end
     end
     for _, spec in ipairs(options.shieldCopies or {}) do
@@ -420,6 +458,7 @@ local function fixture(options)
     end
     env.DyresShieldsUpDB = options.db
     state.env = env
+    state.emit("ADDON_LOADED", "DyresToolkit")
     state.emit("ADDON_LOADED", ADDON)
     state.emit("PLAYER_LOGIN")
 
@@ -428,6 +467,12 @@ local function fixture(options)
         state.emit("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-" .. spellID, spellID)
     end
     function state.ring() return state.suf.ShieldDisplay.frame end
+    -- A frame's center on screen.
+    function state.center(frame)
+        local x, y = frame:GetCenter()
+        local scale = frame:GetEffectiveScale()
+        return x * scale, y * scale
+    end
     function state.last() return state.messages[#state.messages] end
     function state.clear() state.messages = {} end
     function state.said(fragment)
@@ -450,20 +495,15 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.0.0 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.1.0 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
-    equal(state.messages[3], "DSU: Install Dyre's Toolkit from CurseForge for one layout mode and settings "
-        .. "home for all Dyre's AddOns.", "without the toolkit, said once")
-    equal(#state.messages, 3, "nothing else at login")
-    equal(state.messages[3]:find("github", 1, true), nil, "CurseForge only, for now")
+    equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
-    local withToolkit = fixture({toolkit = true})
-    equal(#withToolkit.messages, 2, "with the toolkit, no install line")
 end)
-test("the TOC lists the toolkit as optional and nests under it in the AddOn list", function()
+test("the TOC requires the toolkit and nests under it in the AddOn list", function()
     local state = fixture()
-    equal(state.toc.OptionalDeps, "DyresSounds, DyresToolkit", "never ## Dependencies")
-    equal(state.toc.Dependencies, nil)
+    equal(state.toc.Dependencies, "DyresToolkit", "the toolkit places and sizes the ring")
+    equal(state.toc.OptionalDeps, "DyresSounds")
     equal(state.toc.Group, "DyresToolkit")
 end)
 test("every class runs it", function()
@@ -484,11 +524,12 @@ end)
 test("/dsu and /dsu options open the settings page", function()
     local state = fixture()
     state.slash("")
-    equal(state.opened, "id:Dyre's Shields Up")
+    equal(state.opened, "id:" .. PAGE)
     state.opened = nil
     state.slash("  OPTIONS ")
-    equal(state.opened, "id:Dyre's Shields Up")
-    equal(state.registered, state.categories["Dyre's Shields Up"])
+    equal(state.opened, "id:" .. PAGE)
+    equal(state.categories[PAGE].parent, state.categories["Dyre's AddOns"], "under Dyre's AddOns")
+    equal(state.registered, state.categories["Dyre's AddOns"], "no top-level page of its own")
 end)
 test("/shieldsup is a backup slash command", function()
     local state = fixture()
@@ -564,23 +605,24 @@ test("a Priest's icon row holds Power Word: Shield and Blessing of Protection", 
     equal(ring.icons.slots[1].key, "powerwordshield")
     equal(ring.icons.slots[1].ids[592], true, "a set of every rank")
     equal(ring.icons.slots[2].key, "blessingofprotection")
-    equal(ring.iconButtons.blessingofprotection.display.barOptions.direction, 1, "a bubble drains with time")
-    contains(ring.iconButtons.blessingofprotection.display.bar.statusBarTexture, "ShieldArcInnermost")
+    equal(ring.iconButtons.blessingofprotection.display.icon ~= nil, true, "an icon in the icon row")
+    equal(ring.icons.parent, ring.iconHolder, "the icons are the icon row's size")
+    equal(#ring.crescents.slots, 1, "the timed crescent is a slot of its own")
+    local bubble = ring.crescents.slots[1]
+    equal(bubble.key, "blessingofprotection")
+    equal(bubble.button.display.barOptions.direction, 1, "a bubble drains with time")
+    contains(bubble.button.display.bar.statusBarTexture, "ShieldArcInnermost")
+    equal(bubble.button.display.icon, nil, "no icon there")
+    equal(ring.crescents.parent, ring, "the crescents' size")
 end)
 test("each class's row holds its own shields first, then the shared ones", function()
     local rows = {WARRIOR = {"powerwordshield", "blessingofprotection"},
         WARLOCK = {"shadowward", "sacrifice", "powerwordshield", "blessingofprotection"},
         PALADIN = {"divineshield", "divineprotection", "powerwordshield", "blessingofprotection"},
         MAGE = {"icebarrier", "manashield", "fireward", "frostward", "powerwordshield", "blessingofprotection"}}
-    -- An icon's place left to right; a timed shield's icon sits on its own holder.
+    -- An icon's place left to right.
     local function spotX(ring, key)
-        local button = ring.iconButtons[key]
-        if button.display.bar then
-            for _, child in ipairs(button.children) do
-                if child.kind == "Frame" then button = child end
-            end
-        end
-        return button.points[1][4]
+        return ring.iconButtons[key].points[1][4]
     end
     for class, keys in pairs(rows) do
         local ring = fixture({class = class}).ring()
@@ -603,7 +645,10 @@ test("a shield another player puts on you shows, also after a reload", function(
 end)
 test("every crescent is centered on the ring, also the outer one inside the taller clip", function()
     local ring = fixture({class = "PALADIN"}).ring()
-    local bubble = ring.iconButtons.blessingofprotection.display.bar
+    local bubble
+    for _, slot in ipairs(ring.crescents.slots) do
+        if slot.key == "blessingofprotection" then bubble = slot.button.display.bar end
+    end
     for name, region in pairs({background = ring.background, bar = ring.bar, bubble = bubble}) do
         local top, bottom = region.points[1], region.points[2]
         equal(top[2], ring, name .. " anchored to the ring, not its parent")
@@ -625,10 +670,18 @@ test("a tiny absorb stays hidden: a gate bar ending at the minimum clips the rin
     equal(ring.gated.clips, true)
     local corner = ring.gated.points[2]
     equal(corner[2], ring.gate:GetStatusBarTexture(), "the clipping frame ends where the gate's fill ends")
-    equal(corner[5], -40, "and reaches below the frame for the number")
     equal(ring.bar.parent, ring.gated)
     equal(ring.background.parent, ring.gated)
     equal(ring.gated.parent, ring.visible, "the opacity still follows the absorb")
+    -- The number, at its own size, has a gate of its own.
+    equal(ring.textGate.value, state.absorb)
+    equal(ring.textGate.minValue, 74)
+    equal(ring.textGate.maxValue, 75)
+    equal(ring.textGate.alpha, 0)
+    equal(ring.textGated.clips, true)
+    equal(ring.textGated.points[2][2], ring.textGate:GetStatusBarTexture())
+    equal(ring.text.parent, ring.textGated)
+    equal(ring.textHolder.parent, ring.visible, "the number fades with the absorb too")
 end)
 test("the minimum is 25 points when health is low or secret", function()
     local state = fixture({class = "PALADIN"})
@@ -666,7 +719,7 @@ test("the settings page changes the display", function()
     state.settings.DSU_SHIELD_NUMBER:SetValue(false)
     state.cast(POWER_WORD_SHIELD)
     equal(ring.text.text, "")
-    state.settings.DSU_SHIELD_SCALE:SetValue(83)
+    state.settings[WIDGET_SCALE]:SetValue(83)
     equal(state.suf.db.shield.scale, 85)
     equal(ring.scale, 0.85)
     state.settings.DSU_SHIELD_BREAK_SOUND:SetValue(true)
@@ -676,7 +729,7 @@ test("the settings page changes the display", function()
         "Interface\\AddOns\\DyresSounds\\Sounds\\FadingSlowDisappear.mp3",
         "Dyre's Sounds' file: DSU ships no sounds")
     equal(table.concat(state.soundsPlayed, ","), "fadingslow", "turning it on plays it once")
-    state.settings.DSU_SHIELD_SCALE:SetValue(90)
+    state.settings[WIDGET_SCALE]:SetValue(90)
     equal(#state.soundsPlayed, 1, "other settings do not play it")
     state.settings.DSU_SHIELD_ENABLED:SetValue(false)
     equal(ring.shown, false)
@@ -686,7 +739,7 @@ test("the settings page changes the display", function()
 end)
 test("the break sound is chosen in a dropdown under its switch; choosing one plays it", function()
     local state = fixture()
-    local page = state.categories["Dyre's Shields Up"]
+    local page = state.categories[PAGE]
     local dropdown
     for _, initializer in ipairs(page.initializers) do
         if initializer.setting.variable == "DSU_SHIELD_BREAK_SOUND_CHOICE" then dropdown = initializer end
@@ -729,38 +782,51 @@ test("without Dyre's Sounds the display works, keeps the choice, and says once w
     contains(state.last(), "Install Dyre's Sounds")
     contains(state.last(), "Get it from CurseForge.")
     equal(state.last():find("github", 1, true), nil, "CurseForge only, for now")
-    state.settings.DSU_SHIELD_SCALE:SetValue(90)
+    state.settings[WIDGET_SCALE]:SetValue(90)
     local count = 0
     for _, message in ipairs(state.messages) do
         if message:find("Install Dyre's Sounds", 1, true) then count = count + 1 end
     end
     equal(count, 1, "once per session")
 end)
-test("/dsu unlock shows a sample to drag; /dsu lock and the page's switch lock it", function()
+test("/dsu unlock shows the sample and outline to drag; /dsu lock locks every Dyre's AddOn", function()
     local state = fixture()
     local ring = state.ring()
+    equal(ring.mouse, false, "locked: clicks pass through")
+    state.clear()
     state.slash("unlock")
+    equal(state.toolkit.IsLocked(), false, "/dsu unlock is the toolkit's lock")
     equal(state.suf.db.shield.locked, false)
-    equal(state.settings.DSU_UNLOCKED:GetValue(), true, "the page's switch follows")
     equal(ring.shown, true)
     equal(ring.mouse, true)
     equal(ring.text.text, "drag me")
     equal(ring.sample.shown, true)
-    equal(ring.mover.shown, true)
-    contains(ring.mover.hint.text, "/dsu lock when done")
-    contains(state.last(), "drag it where you want")
+    equal(ring.dyre.mover.shown, true, "the toolkit's gold outline")
+    contains(ring.dyre.mover.hint.text, "Dyre's Shields Up")
+    equal(ring.mover, nil, "no outline of the display's own")
+    for _, message in ipairs(state.messages) do
+        equal(message:find("^DSU:"), nil, "only the toolkit's line: " .. message)
+    end
     ring.scripts.OnDragStart(ring)
     equal(ring.moving, true)
-    ring:SetPoint("LEFT", state.env.UIParent, "LEFT", 10, 0)
+    ring:ClearAllPoints()
+    ring:SetPoint("CENTER", state.env.UIParent, "CENTER", 200, 100)
     ring.scripts.OnDragStop(ring)
-    equal(state.suf.db.shield.position.point, "LEFT")
-    state.settings.DSU_UNLOCKED:SetValue(false)
+    local position = state.suf.db.shield.position
+    equal(position.point, "CENTER")
+    equal(position.relativePoint, "BOTTOMLEFT", "saved by the toolkit, from UIParent's corner")
+    equal(position.x, 700)
+    equal(position.y, 500)
+    state.slash("lock")
+    equal(state.toolkit.IsLocked(), true)
     equal(state.suf.db.shield.locked, true)
     equal(ring.shown, false)
     equal(ring.mouse, false)
+    equal(ring.dyre.mover.shown, false)
     state.slash("reset")
     equal(state.suf.db.shield.position, nil)
     equal(ring.points[1][1], "CENTER")
+    equal(ring.points[1][4], 20, "the display's default place")
     contains(state.last(), "default place")
 end)
 test("without the absorb API the display stays off with one message", function()
@@ -773,7 +839,7 @@ test("/dsu debug_shield runs every step", function()
     state.clear()
     state.slash("debug_shield")
     local text = table.concat(state.messages, "|")
-    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v9 (running)")
+    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v11 (running)")
     contains(text, "minimumAbsorb=75")
     contains(text, "the absorb total shows above your character")
     equal(text:find("failed", 1, true), nil, "every debug step ran")
@@ -781,90 +847,224 @@ end)
 
 -- Dyre's Toolkit ------------------------------------------------------------------
 
-test("with Dyre's Toolkit, DSU joins it: one lock, quiet, and its page under Dyre's AddOns", function()
-    local state = fixture({toolkit = true, db = {shield = {locked = false}}})
-    local toolkit = state.toolkit
-    equal(#toolkit.members, 1)
-    equal(toolkit.members[1].addon, "DyresShieldsUp")
-    equal(toolkit.members[1].title, "Dyre's Shields Up")
-    equal(state.suf.db.shield.locked, true, "frames start locked at login, as the toolkit's do")
-    local page = state.categories["Dyre's Shields Up"]
-    equal(page.parent, "Dyre's AddOns", "the page is the toolkit's")
-    equal(state.registered, nil, "no top-level page of its own")
+test("the ring is a toolkit widget, and the saved place and size carry over", function()
+    local state = fixture({db = {shield = {position = {point = "CENTER", relativePoint = "CENTER", x = 100, y = 50},
+        scale = 120}}})
     local ring = state.ring()
-    state.clear()
-    state.slash("unlock")
-    equal(toolkit.locked, false, "/dsu unlock unlocks every Dyre's AddOn")
-    equal(state.suf.db.shield.locked, false)
-    equal(ring.shown, true)
-    equal(ring.sample.shown, true)
-    equal(ring.mover.shown, true)
-    equal(#state.messages, 1, "only the toolkit's line")
-    equal(state.last(), "Dyre: Frames unlocked.")
-    toolkit.SetLocked(true)
-    equal(state.suf.db.shield.locked, true, "the toolkit's lock locks DSU too")
-    equal(ring.shown, false)
+    local widgets = state.toolkit.Widgets("DyresShieldsUp")
+    equal(#widgets, 1)
+    equal(widgets[1], ring, "the display's own frame")
+    equal(ring.dyre.store, state.suf.db.shield, "its store is DSU's shield settings")
+    equal(ring.scale, 1.2)
+    equal(ring.width, 160)
+    local point = ring.points[#ring.points]
+    equal(point[1], "CENTER")
+    equal(point[3], "CENTER")
+    equal(point[4], 100)
+    equal(point[5], 50)
+    equal(state.settings[WIDGET_SCALE]:GetValue(), 120, "the toolkit's size slider")
+    equal(state.settings.DSU_SHIELD_SCALE, nil, "no slider of DSU's own")
+    local members = state.toolkit.AddOns()
+    equal(#members, 1)
+    equal(members[1].title, "Dyre's Shields Up")
+end)
+test("a size change keeps the ring's center and saves its place", function()
+    local state = fixture({db = {shield = {position = {point = "CENTER", relativePoint = "CENTER", x = 100, y = 50}}}})
+    local ring = state.ring()
+    local x, y = state.center(ring)
+    state.settings[WIDGET_SCALE]:SetValue(150)
+    equal(ring.scale, 1.5)
+    local afterX, afterY = state.center(ring)
+    equal(math.abs(afterX - x) < 0.01 and math.abs(afterY - y) < 0.01, true, "the center stays put")
+    equal(state.suf.db.shield.position.relativePoint, "BOTTOMLEFT", "the new place is saved")
+    equal(state.suf.db.shield.scale, 150)
+    local page = state.categories[PAGE]
+    equal(page.buttons[1].buttonText, "Reset size")
+    page.buttons[1].onClick()
+    equal(state.suf.db.shield.scale, 100)
+    afterX, afterY = state.center(ring)
+    equal(math.abs(afterX - x) < 0.01 and math.abs(afterY - y) < 0.01, true, "and back, from the center")
+end)
+test("the crescents grow; the number and the icons keep their own sizes", function()
+    local state = fixture({class = "MAGE"})
+    local ring = state.ring()
+    local textScale, iconScale = ring.text:GetEffectiveScale(), ring.iconButtons.icebarrier:GetEffectiveScale()
+    equal(textScale, 1)
+    equal(iconScale, 1)
+    state.settings[WIDGET_SCALE]:SetValue(150)
+    equal(ring:GetEffectiveScale(), 1.5, "the crescents grow")
+    equal(math.abs(ring.text:GetEffectiveScale() - 1) < 1e-9, true, "the number stays its size")
+    equal(math.abs(ring.iconButtons.icebarrier:GetEffectiveScale() - 1) < 1e-9, true, "the icons stay their size")
+    local timed
+    for _, slot in ipairs(ring.crescents.slots) do
+        if slot.key == "manashield" then timed = slot.button end
+    end
+    equal(timed:GetEffectiveScale(), 1.5, "Mana Shield's crescent grows with the outer one")
+    state.settings.DYRE_DYRESSHIELDSUP_SHIELD_TEXTSCALE:SetValue(130)
+    equal(math.abs(ring.text:GetEffectiveScale() - 1.3) < 1e-9, true, "the number has its own size")
+    state.settings.DYRE_DYRESSHIELDSUP_SHIELD_ICONSCALE:SetValue(70)
+    equal(math.abs(ring.iconButtons.icebarrier:GetEffectiveScale() - 0.7) < 1e-9, true, "and so do the icons")
+    equal(state.suf.db.shield.textScale, 130, "saved with DSU's settings")
+    equal(state.suf.db.shield.iconScale, 70)
+    -- The number follows the crescent's foot, with no offsets in its own units.
+    local anchor = ring.textHolder.points[1]
+    equal(anchor[2], ring.foot)
+    equal(anchor[4], nil)
+    -- The sample's icons are the icon row's size.
+    equal(ring.sampleIcons.parent, ring.iconHolder)
+    -- Reset size: all three back to 100%.
+    state.categories[PAGE].buttons[1].onClick()
+    equal(state.suf.db.shield.scale, 100)
+    equal(state.suf.db.shield.textScale, 100)
+    equal(state.suf.db.shield.iconScale, 100)
+    equal(math.abs(ring.text:GetEffectiveScale() - 1) < 1e-9, true)
+end)
+test("the size sliders: crescents, then the number, then the icons", function()
+    local state = fixture()
+    local order = {}
+    for _, initializer in ipairs(state.categories[PAGE].initializers) do
+        if initializer.setting.variable:find("^DYRE_") then order[#order + 1] = initializer.setting.name end
+    end
+    equal(table.concat(order, ", "), "Display size (%), Text size (%), Icon size (%)")
+    equal(fixture({db = {shield = {textScale = 999, iconScale = "big"}}}).suf.db.shield.textScale, 150,
+        "repaired on load")
+end)
+test("a v9-style host keeps the number and icons at 100% while its crescents grow", function()
+    local state = fixture({class = "MAGE",
+        shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, layout = "v9"}}})
+    local copy = state.copies.MageToolsForever
+    local ring = copy.ShieldDisplay.frame
+    copy.settings.scale = 140
+    copy.ShieldDisplay.Refresh()
+    equal(math.abs(ring:GetEffectiveScale() - 1.4) < 1e-9, true)
+    equal(math.abs(ring.text:GetEffectiveScale() - 1) < 1e-9, true)
+    equal(math.abs(ring.iconButtons.icebarrier:GetEffectiveScale() - 1) < 1e-9, true)
+end)
+test("no widget opacity: the ring's inner frame still fades with the secret absorb", function()
+    local state = fixture()
+    local ring = state.ring()
+    equal(state.settings.DYRE_DYRESSHIELDSUP_SHIELD_OPACITY, nil, "no opacity slider")
+    state.cast(POWER_WORD_SHIELD)
+    equal(ring.visible.alpha, state.absorb, "the secret absorb, passed on unread")
+    equal(ring.alpha, nil, "the widget itself is never faded")
+end)
+test("the icon row's engine slots are set up only when the engine makes them", function()
+    local state = fixture()
+    local ring = state.ring()
+    local before = {}
+    for _, slot in ipairs(ring.icons.slots) do before[slot.key] = slot.button.points[1] end
+    state.settings[WIDGET_SCALE]:SetValue(150)
     state.slash("unlock")
     state.slash("lock")
-    equal(toolkit.locked, true, "/dsu lock locks every Dyre's AddOn")
-    equal(state.suf.db.shield.locked, true)
-    equal(state.settings.DSU_UNLOCKED, nil, "no unlock switch of its own: the toolkit's page has one")
-    for _, initializer in ipairs(page.initializers) do
-        equal(initializer.tooltip:find("Unlock to move", 1, true), nil, initializer.setting.variable)
+    for _, slot in ipairs(ring.icons.slots) do
+        equal(slot.button.points[1], before[slot.key], slot.key .. " untouched")
     end
-    local variables = {}
-    for _, initializer in ipairs(page.initializers) do variables[#variables + 1] = initializer.setting.variable end
-    equal(table.concat(variables, ","), "DSU_SHIELD_ENABLED,DSU_SHIELD_NUMBER,DSU_SHIELD_BREAK_SOUND,"
-        .. "DSU_SHIELD_BREAK_SOUND_CHOICE,DSU_SHIELD_SCALE", "the rest of the page stays")
-    state.slash("reset")
-    contains(state.last(), "default place", "/dsu reset stays")
 end)
-test("with Dyre's Toolkit, the ring drags and snaps through it and saves its place", function()
-    local state = fixture({toolkit = true})
-    local ring = state.ring()
-    local toolkit = state.toolkit
-    equal(type(toolkit.movables[ring]), "function", "the ring is registered as movable")
-    ring.scripts.OnDragStart(ring)
-    equal(#toolkit.drags, 0, "locked: no drag")
-    state.slash("unlock")
-    ring.scripts.OnDragStart(ring)
-    equal(ring.moving, true)
-    ring.scripts.OnDragStop(ring)
-    equal(table.concat(toolkit.drags, ","), "begin,end")
-    equal(state.suf.db.shield.position.relativePoint, "BOTTOMLEFT", "saved as the toolkit placed it")
-    equal(state.suf.db.shield.position.x, 400)
-    state.slash("reset")
-    equal(state.suf.db.shield.position, nil)
-end)
-test("with Dyre's Toolkit, /dsu opens DSU's page through it, never in combat", function()
-    local state = fixture({toolkit = true})
-    state.slash("")
-    equal(state.opened, "id:Dyre's Shields Up")
-    state.opened = nil
+test("/dsu opens DSU's page through the toolkit, never in combat", function()
+    local state = fixture()
     state.combat = true
     state.slash("options")
     equal(state.opened, nil)
     state.combat = false
-    state.toolkit.members[1].openSettings()
-    equal(state.opened, "id:Dyre's Shields Up", "the toolkit's menu opens it too")
+    state.toolkit.AddOns()[1].openSettings()
+    equal(state.opened, "id:" .. PAGE, "the toolkit's menu opens it too")
 end)
-test("a toolkit with only a newer contract, or no settings, leaves DSU as it is today", function()
-    local newer = fixture({toolkit = "newer"})
-    equal(newer.said("Install Dyre's Toolkit"), true)
-    equal(#newer.toolkit.members, 0)
-    equal(newer.registered, newer.categories["Dyre's Shields Up"], "its own top-level page")
-    equal(newer.settings.DSU_UNLOCKED ~= nil, true, "with its own unlock switch, the only way to unlock there")
-    newer.slash("unlock")
-    equal(newer.toolkit.locked, true, "the toolkit's lock is not touched")
-    contains(newer.last(), "drag it where you want")
-    local ring = newer.ring()
+test("without Dyre's Toolkit 2.0 DSU stays off and says once what to install", function()
+    for _, options in ipairs({{noToolkit = true}, {oldToolkit = true}}) do
+        local state = fixture(options)
+        equal(state.suf.available, false)
+        equal(state.ring(), nil, "no ring")
+        local count = 0
+        for _, message in ipairs(state.messages) do
+            if message:find("needs Dyre's Toolkit 2.0", 1, true) then count = count + 1 end
+        end
+        equal(count, 1)
+        contains(state.last(), "CurseForge")
+        equal(state.last():find("github", 1, true), nil, "CurseForge only")
+        state.slash("unlock")
+        contains(state.last(), "unavailable")
+    end
+end)
+test("the toolkit copy the tests load matches ../DyresToolkit when it is there", function()
+    for _, path in ipairs(TOOLKIT_FILES) do
+        local own = io.open("../DyresToolkit/" .. path, "rb")
+        if own then
+            local copy = assert(io.open("tests/toolkit/" .. path, "rb"))
+            equal(copy:read("*a") == own:read("*a"), true, "tests/toolkit/" .. path .. " is stale: copy it again")
+            copy:close()
+            own:close()
+        end
+    end
+end)
+
+-- Hosts of the shared display without widgets (MTF and WTF 1.1.0) ----------------
+
+test("a v9-style host keeps its toolkit drag and save, and a size change keeps the center", function()
+    local state = fixture({class = "MAGE",
+        shieldCopies = {{addon = "MageToolsForever", before = true, runs = true, layout = "v9"}}})
+    local copy = state.copies.MageToolsForever
+    equal(copy.ShieldDisplay.IsOwner(), true, "the first registered wins a tie")
+    local ring = copy.ShieldDisplay.frame
+    equal(ring.dyre, nil, "not a widget")
+    equal(#state.toolkit.Widgets("DyresShieldsUp"), 0, "DSU adopts nothing it does not draw")
+    copy.settings.position = {point = "CENTER", relativePoint = "CENTER", x = 100, y = 50}
+    copy.ShieldDisplay.ResetPosition()
+    copy.settings.position = {point = "CENTER", relativePoint = "CENTER", x = 100, y = 50}
+    ring:ClearAllPoints()
+    ring:SetPoint("CENTER", state.env.UIParent, "CENTER", 100, 50)
+    local x, y = state.center(ring)
+    copy.settings.scale = 150
+    copy.ShieldDisplay.Refresh()
+    equal(ring.scale, 1.5)
+    local afterX, afterY = state.center(ring)
+    equal(math.abs(afterX - x) < 0.01 and math.abs(afterY - y) < 0.01, true, "grows from its center")
+    equal(copy.settings.position.relativePoint, "BOTTOMLEFT", "the display saves the new place")
+    copy.ShieldDisplay.Refresh()
+    equal(copy.settings.position.relativePoint, "BOTTOMLEFT", "an unchanged size moves nothing")
+    -- The next toolkit drag saves through the host's save.
+    state.toolkit.Unlock()
+    copy.settings.locked = false
+    copy.ShieldDisplay.Refresh()
     ring.scripts.OnDragStart(ring)
-    equal(#newer.toolkit.drags, 0, "dragged freely")
-    equal(ring.moving, true)
-    local noPage = fixture({toolkit = true, noSettings = true})
-    equal(noPage.suf.available, true)
-    noPage.slash("")
-    contains(noPage.last(), "settings page is unavailable")
+    equal(ring.moving, true, "registered with the toolkit")
+    ring:ClearAllPoints()
+    ring:SetPoint("CENTER", state.env.UIParent, "CENTER", -100, 0)
+    ring.scripts.OnDragStop(ring)
+    equal(ring.moving, false)
+    local position = copy.settings.position
+    equal(position.relativePoint, "BOTTOMLEFT")
+    equal(math.abs(position.x * 1.5 - 350) < 0.01, true, "saved where it was dropped, in its own units")
+end)
+test("a host with no layout drags freely, and a size change keeps the center", function()
+    local state = fixture({class = "MAGE",
+        shieldCopies = {{addon = "MageToolsForever", before = true, runs = true}}})
+    local copy = state.copies.MageToolsForever
+    local ring = copy.ShieldDisplay.frame
+    equal(ring.points[1][1], "CENTER", "placed at its default")
+    local x, y = state.center(ring)
+    copy.settings.scale = 70
+    copy.ShieldDisplay.Refresh()
+    local afterX, afterY = state.center(ring)
+    equal(math.abs(afterX - x) < 0.01 and math.abs(afterY - y) < 0.01, true, "shrinks to its center")
+    copy.settings.locked = false
+    copy.ShieldDisplay.Refresh()
+    equal(ring.mouse, true)
+    equal(ring.mover.shown, true, "its own outline")
+    ring.scripts.OnDragStart(ring)
+    ring:ClearAllPoints()
+    ring:SetPoint("LEFT", state.env.UIParent, "LEFT", 10, 0)
+    ring.scripts.OnDragStop(ring)
+    equal(copy.settings.position.point, "LEFT", "saved as dropped")
+    copy.ShieldDisplay.ResetPosition()
+    equal(copy.settings.position, nil)
+end)
+test("a saved place in a scaled ring lands where it was at login", function()
+    local state = fixture({class = "MAGE", shieldCopies = {{addon = "MageToolsForever", before = true, runs = true,
+        settings = {scale = 150, position = {point = "CENTER", relativePoint = "BOTTOMLEFT", x = 200, y = 100}}}}})
+    local ring = state.copies.MageToolsForever.ShieldDisplay.frame
+    local x, y = state.center(ring)
+    equal(x, 300)
+    equal(y, 150, "the saved offsets are in the ring's own scaled units")
 end)
 
 -- Other AddOns shipping the display -------------------------------------------------
@@ -886,20 +1086,21 @@ test("with Mage Tools Forever running too, only one ring shows, and DSU says whe
     contains(state.last(), "shown by MageToolsForever")
     state.slash("options")
     contains(state.last(), "shown by MageToolsForever")
-    local page = state.categories["Dyre's Shields Up"]
+    local page = state.categories[PAGE]
     for _, initializer in ipairs(page.initializers) do
         equal(initializer.modifyPredicates[1](), false, initializer.setting.variable .. " is greyed out")
         contains(initializer.tooltip, "Mage Tools Forever draws the shield display, so use its settings for it.")
     end
     local alone = fixture()
-    for _, initializer in ipairs(alone.categories["Dyre's Shields Up"].initializers) do
-        equal(initializer.modifyPredicates[1](), true, "not greyed while DSU draws the ring")
+    for _, initializer in ipairs(alone.categories[PAGE].initializers) do
+        local predicate = initializer.modifyPredicates[1]
+        equal(predicate == nil or predicate(), true, "not greyed while DSU draws the ring")
         equal(initializer.tooltip:find("draws the shield display", 1, true), nil)
     end
 end)
 test("a newer copy elsewhere takes over; DSU takes over from an older one", function()
     local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true,
-        version = 10}}})
+        version = 12}}})
     equal(newer.suf.ShieldDisplay.IsOwner(), false)
     local older = fixture({shieldCopies = {{addon = "WarlockToolsForever", runs = true, version = 2}}})
     equal(older.suf.ShieldDisplay.IsOwner(), true)

@@ -26,7 +26,7 @@ Forever.
   sibling checkouts exist. Keep DSU's own needs in Core.lua and Options.lua.
 - Its whole interface: `ShieldDisplay.Initialize({settings, report,
   unlockHint, missingSounds, layout})`, `Sanitize` (it owns its defaults, the lock included),
-  `SanitizeScale` and the scale constants,
+  `SanitizeScale` and the scale constants, `SIZE`, `DEFAULT_PLACE`,
   `DEFAULT_BREAK_SOUND`, `SanitizeBreakSound`, `SoundChoices`, `SetupSoundMenu`,
   `PreviewBreakSound`, `Refresh`,
   `ApplyBreakSound`, `ResetPosition`, `ReportDebug`, `IsOwner`, and
@@ -90,6 +90,33 @@ Forever.
   `BeginDrag`, `EndDrag`); the ring registers with it and drags through it,
   so it snaps to the host's other frames and the grid, and the layout's
   `save(position)` stores the position. Without one it drags freely as before.
+- Version 10 (shipped first in DSU 1.1.0; MTF and WTF copy it): a widget
+  host passes `layout = {adopt(frame), resetPosition(frame)}`. The display
+  builds the ring (`SIZE` square, default place `DEFAULT_PLACE`), then calls
+  `adopt`; an adopted ring is the host's to place, drag, scale, outline, and
+  save, and the display never touches its points, scale, mouse, or movability
+  (author's rule: all layout lives in the toolkit). The display still fills
+  it, shows or hides it, and shows the sample while the settings say
+  unlocked. For any other host (v9's `{register, beginDrag, endDrag}`, or no
+  layout), a scale change keeps the ring's center (found in client: a bare
+  `SetScale` moved a ring anchored CENTER to UIParent's corner right and up)
+  and saves `{CENTER, BOTTOMLEFT, x, y}`, as the toolkit's ResizeFromCenter
+  does; only when it is placed and the scale really changed. The ring is
+  scaled before it is placed at login, so saved offsets (in its own scaled
+  units) land where they were. Shield.lua never names Dyre's Toolkit.
+- Version 11 (with v10 in DSU 1.1.0; author-approved: large crescents with a
+  large number were disconcerting): `scale` sizes the crescents only. The
+  number and the icon row have their own sizes, `textScale` and `iconScale`
+  (50-150%, from `Sanitize`), each in a frame scaled by its size over the
+  crescents' scale, anchored with no offsets (the number to a point at the
+  crescent's foot, the icons to the number), so they follow the crescents
+  without growing. The number keeps the opacity frame and has a gate of its
+  own (the same one-point range), since the crescent's clip no longer reaches
+  below the ring. The engine's slots are never resized: icons and timed
+  crescents are separate slots in two AuraContainers, the icons' under the
+  icon row's frame, the timed crescents' in the ring (so they grow with the
+  outer crescent), each set up only in its initializeFrame. A host without
+  part sliders gets the number and the icons at 100%.
 - Version 7 (with MTF and WTF; found in client): every crescent is anchored
   to the display itself. In v5 and v6 the outer crescent was fitted to its
   parent, the minimum-absorb clipping frame, which reaches 40 px below the
@@ -98,22 +125,29 @@ Forever.
 
 ### DSU's own parts (built)
 
-- One settings page (vertical layout, proxy settings on
-  `DyresShieldsUpDB.shield`): Shield display, Show the absorb amount, Sound
-  when a shield ends and its Sound choice, Display size (50-150% in steps of 5), and, without
-  Dyre's Toolkit, Unlock to move it.
-- Dyre's Toolkit (author-approved; `## OptionalDeps: DyresToolkit`, never
-  `## Dependencies`, and a CurseForge required dependency, slug
-  `dyres-toolkit`): with `DyresToolkit.RequireContract(1)`, Core registers DSU
-  (`RegisterAddOn`; its `setLocked` shows or hides the sample quietly, the
-  toolkit says one line for all), passes the toolkit's layout to the display,
-  and starts locked as the toolkit does; `/dsu unlock` and `lock` call the
-  toolkit's lock, and the page has no "Unlock to move it" switch (author-
-  approved: the toolkit's "Unlock frames" is the one switch); the page comes from
-  `RegisterSettingsCategory` and opens through `OpenSettings`. Without it (or
-  with only a newer contract), DSU keeps its own top-level page, lock, and free
-  dragging, and says once at login to install the toolkit, naming only
-  CurseForge.
+- One settings page, "Shields Up" under Dyre's Toolkit's "Dyre's AddOns"
+  (vertical layout, proxy settings on `DyresShieldsUpDB.shield`): Shield
+  display, Show the absorb amount, Sound when a shield ends and its Sound
+  choice, then the toolkit's sliders (`AddWidgetSettings`, 50-150% in steps
+  of 5, each with its default mark): Display size (the crescents), Text size,
+  and Icon size, and Reset size for all three. While another AddOn draws the
+  ring, a greyed slider of DSU's own keeps the saved size.
+- Dyre's Toolkit 2.0 (contract 2) is required (author: "all the widget layout,
+  snapping, modifier key move rules, etc., centralized in Dyre's Tools"):
+  `## Dependencies: DyresToolkit`, a CurseForge required dependency (slug
+  `dyres-toolkit`). Core's `DSU.Toolkit()` checks the contract and the
+  functions DSU uses; without them DSU stays off and says once to install or
+  update it, naming only CurseForge. The display's `layout.adopt` makes the
+  ring a widget (`CreateWidget`: key `shield`, store `DyresShieldsUpDB.shield`
+  with its `position` and `scale` keys as saved before, `sizes.scale`, mouse
+  "unlocked", sizes `scale`, `textScale`, and `iconScale`); `onLayout`
+  refreshes the display, which re-scales the number and the icons; `onUnlock`
+  sets `locked` and refreshes the display, which shows the sample. No widget opacity: the ring's inner frame's alpha is the secret
+  absorb, and the widget's own alpha is never set. `/dsu unlock` and `lock`
+  call the toolkit's lock; `/dsu reset` resets the widget; the page opens
+  through `OpenSettings`, never in combat. DSU never moves, scales, or saves
+  the ring itself. tests/run.lua loads the toolkit's real files from
+  tests/toolkit, which must match ../DyresToolkit.
 - Commands: `/dsu` and `/dsu options`, `unlock`, `lock`, `reset`,
   `debug_shield` (runs even when DSU is unavailable). Backup slash
   `/shieldsup`; a clash on `/dsu` is reported once at login.
@@ -143,9 +177,8 @@ Forever.
   Bedworth, and the release builder requires that exact notice.
 - The TOC has `## Group: DyresToolkit`, so the in-game AddOn list nests DSU
   under Dyre's Toolkit with the rest of Dyre's AddOns (the family groups under
-  the toolkit). `## Category: Buffs & Debuffs` matters only when the toolkit
-  is missing; keep it identical to the CurseForge main category, because the
-  list groups by exact text.
+  the toolkit). Keep `## Category: Buffs & Debuffs` identical to the
+  CurseForge main category, because the list groups by exact text.
 - Add no other runtime assets without agreement.
 - Git origin: git@github.com:jbedworth/DyresShieldsUp.git. Inspect Git state
   before acting and preserve user work. Text is LF under .gitattributes.

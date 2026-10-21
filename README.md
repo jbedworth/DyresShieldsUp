@@ -1,10 +1,10 @@
 # Dyre's Shields Up
 
 The shield display from Mage Tools Forever, on its own, for any class in World
-of Warcraft: Forever (beta). Settings are in **Options → AddOns → Dyre's
-AddOns → Dyre's Shields Up** (with Dyre's Toolkit; without it, **Options →
-AddOns → Dyre's Shields Up**), or type `/dsu`. They are saved per character.
-Formerly Shields Up Forever (`/suf`).
+of Warcraft: Forever. Settings are in **Options → AddOns → Dyre's AddOns →
+Shields Up**, or type `/dsu`. They are saved per character. Needs **Dyre's
+Toolkit** 2.0 or later, which the CurseForge app installs with it. Formerly
+Shields Up Forever (`/suf`).
 
 ## Shield display
 
@@ -31,25 +31,30 @@ shield is used up.
   **Mana Shield** in a thinner purple crescent nested inside, and Paladin
   bubbles (**Divine Shield**, **Divine Protection**, **Blessing of
   Protection**) in a gold crescent innermost of all.
-- **Display size** shrinks or grows it (50-150%). The number can be turned
+- **Display size** shrinks or grows the crescents from their center
+  (50-150%). The number and the icons keep their size; **Text size** and
+  **Icon size** set them (50-150% each), and **Reset size** puts all three
+  back to 100%. The number can be turned
   off, and a sound can play when a shield ends or breaks, also in combat. The
   sounds come from **Dyre's Sounds**, which the CurseForge app installs with
   DSU; otherwise get it from CurseForge or github.com/jbedworth/DyresSounds.
   Without it, DSU works but plays no sound.
-- Locked (the default), it never blocks clicks on the world. **Unlock to move
-  it** (or `/dsu unlock`) shows a full sample of every part to drag; `/dsu
-  lock` locks it again and `/dsu reset` puts it back.
+- Locked (the default), it never blocks clicks on the world. Unlocked, it
+  shows a full sample of every part, outlined, to drag; `/dsu reset` puts it
+  back.
 
 ## With Dyre's Toolkit
 
 **Dyre's Toolkit** gives all of Dyre's AddOns one layout mode and one
-settings home. The CurseForge app installs it with DSU; without it, DSU works
-as it always has and says once at login to install it from CurseForge.
+settings home, and DSU needs it (2.0 or later): the shield display is one of
+its widgets, placed, dragged, sized, and saved by the toolkit. The CurseForge
+app installs it with DSU; without it, DSU stays off and says once at login to
+install it from CurseForge.
 
 - Unlocking (`/dsu unlock`, `/dyre unlock`, the toolkit's minimap button, or
   **Unlock frames** on the Dyre's AddOns page) unlocks every Dyre's AddOn's
-  frames at once, and locking locks them all. DSU's own page then has no
-  unlock switch. Frames always start locked at login.
+  frames at once, and locking locks them all. Frames always start locked at
+  login.
 - Dropped near another Dyre's AddOn's frame, the shield display snaps beside
   it; Shift-drag moves a snapped group; with the toolkit's "Snap to the grid"
   on, it snaps to the grid.
@@ -71,7 +76,7 @@ and its settings and commands point you to that AddOn's settings.
 | Command | What it does |
 |---|---|
 | `/dsu`, `/dsu options` | Opens the settings |
-| `/dsu unlock`, `/dsu lock` | Unlocks the display to drag it, and locks it again (with Dyre's Toolkit, every Dyre's AddOn's frames) |
+| `/dsu unlock`, `/dsu lock` | Unlocks every Dyre's AddOn's frames to drag them, and locks them again |
 | `/dsu reset` | Moves the display back to its default place |
 | `/dsu debug_shield` | Diagnostics: the absorb APIs, which AddOn draws the ring, each shield, and the icon row |
 

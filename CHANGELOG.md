@@ -4,6 +4,21 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.1.0
+
+### Features
+
+- The shield display is a **Dyre's Toolkit** widget: the toolkit places, drags, snaps, sizes, and saves it, with the same rules as every other Dyre's AddOn frame. Your saved place and size carry over.
+- **Display size** now sizes only the crescents. The absorb number and the icons keep their size, and each has its own slider: **Text size** and **Icon size**. All three have a gold mark at 100%, and **Reset size** puts them all back.
+
+### Fixes
+
+- Changing **Display size** keeps the display where it is: it grows and shrinks from its center instead of moving right and up.
+
+### Other changes
+
+- Needs Dyre's Toolkit 2.0 or later; the CurseForge app installs it. Without it, DSU stays off and says once in chat to install it from CurseForge.
+
 ## 1.0.0
 
 The first full release for WoW: Forever, no longer marked beta: it was play tested on the Forever beta client 1.60.1, build 70450. CurseForge now offers it as a release, so the app updates it and installs what it needs for every player.
