@@ -127,6 +127,14 @@ carry over:
       shield is used up, also in combat, and tiny absorbs stay hidden.
 - [ ] No BugSack (or chat) errors at login, unlocking, dragging, resizing,
       in combat, or on `/dsu debug_shield`.
+- [ ] Settings copy: on a Mage with Mage Tools Forever, after moving its ring
+      and changing its size, number, and sound, delete DSU's saved settings
+      for that character (WTF\Account\<account>\<realm>\<character>\
+      SavedVariables\DyresShieldsUp.lua) and log in: one "Copied your shield
+      settings from Mage Tools Forever." line; the ring is where MTF had it,
+      at MTF's sizes, with its number and sound; DSU's page shows them.
+      `/reload`: no second line. The same on a Warlock with Warlock Tools
+      Forever. A character with DSU settings keeps them, with no line.
 - [ ] With Dyre's Toolkit disabled (or older than 2.0), DSU stays off and
       says once to install it from CurseForge.
 - [ ] With an MTF or WTF that ships Shield.lua v10 on a Mage or Warlock

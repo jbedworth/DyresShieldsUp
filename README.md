@@ -63,6 +63,12 @@ install it from CurseForge.
 
 ## With Mage Tools Forever or Warlock Tools Forever
 
+The first time Dyre's Shields Up runs on a character, a Mage's shield
+settings from Mage Tools Forever (or a Warlock's from Warlock Tools Forever)
+are copied once: place, sizes, the number, and the sound. DSU says so in
+chat. A character that already has DSU settings keeps them, and the other
+AddOn's own settings are left as they are.
+
 Both ship the same display. Installed together, you still see one ring: the
 newest version among the AddOns running on your character draws it, and on
 the same version the first AddOn loaded does (the game loads them in folder

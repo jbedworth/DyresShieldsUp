@@ -497,7 +497,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.1.1 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.2.0 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
@@ -1005,6 +1005,100 @@ test("the toolkit copy the tests load matches ../DyresToolkit when it is there",
             own:close()
         end
     end
+end)
+
+-- Settings from Mage Tools Forever and Warlock Tools Forever -------------------------
+
+local function mtfShield()
+    return {enabled = false, locked = false, number = false, breakSound = true, breakSoundKey = "magical",
+        scale = 130, textScale = 120, iconScale = 80,
+        position = {point = "CENTER", relativePoint = "BOTTOMLEFT", x = 300, y = 200}}
+end
+local function copied(state, fragment)
+    local count = 0
+    for _, message in ipairs(state.messages) do
+        if message:find("Copied your shield settings", 1, true) then
+            count = count + 1
+            contains(message, fragment)
+        end
+    end
+    return count
+end
+
+test("a Mage's first DSU login copies MTF's shield settings once", function()
+    local source = {shield = mtfShield(), locked = false}
+    local state = fixture({class = "MAGE", globals = {MageToolsForeverDB = source}})
+    local shield = state.suf.db.shield
+    equal(shield.enabled, false)
+    equal(shield.number, false)
+    equal(shield.breakSound, true)
+    equal(shield.breakSoundKey, "magical")
+    equal(shield.scale, 130)
+    equal(shield.textScale, 120)
+    equal(shield.iconScale, 80)
+    equal(shield.position.x, 300)
+    equal(shield.locked, true, "the lock is the toolkit's, not copied")
+    equal(state.suf.db.migratedFrom, "MageToolsForever")
+    equal(copied(state, "from Mage Tools Forever."), 1, "said once")
+    equal(state.ring().scale, 1.3, "the widget uses the copied size")
+    local point = state.ring().points[#state.ring().points]
+    equal(point[3], "BOTTOMLEFT")
+    equal(point[4], 300, "and the copied place")
+    -- The source is read, never written.
+    equal(source.shield.locked, false)
+    equal(source.shield.scale, 130)
+    shield.position.x = 1
+    equal(source.shield.position.x, 300, "a new table, not MTF's")
+    -- The next login: DSU has its own settings now.
+    local again = fixture({class = "MAGE", globals = {MageToolsForeverDB = {shield = mtfShield()}},
+        db = state.suf.db})
+    equal(copied(again, ""), 0, "never twice")
+end)
+test("a Warlock's first DSU login copies WTF's shield settings", function()
+    local state = fixture({class = "WARLOCK", globals = {WarlockToolsForeverDB = {shield = mtfShield()}}})
+    equal(state.suf.db.shield.scale, 130)
+    equal(state.suf.db.migratedFrom, "WarlockToolsForever")
+    equal(copied(state, "from Warlock Tools Forever."), 1)
+end)
+test("settings DSU already has win, and nothing is copied", function()
+    local state = fixture({class = "MAGE", globals = {MageToolsForeverDB = {shield = mtfShield()}},
+        db = {shield = {scale = 70}}})
+    equal(state.suf.db.shield.scale, 70)
+    equal(state.suf.db.migratedFrom, nil)
+    equal(copied(state, ""), 0)
+end)
+test("only the player's class's AddOn counts", function()
+    -- Both AddOns make a default shield table on every class.
+    local state = fixture({class = "WARLOCK", globals = {MageToolsForeverDB = {shield = mtfShield()}}})
+    equal(state.suf.db.shield.scale, 100, "a Mage AddOn's table on a Warlock is ignored")
+    equal(copied(state, ""), 0)
+    local priest = fixture({globals = {MageToolsForeverDB = {shield = mtfShield()},
+        WarlockToolsForeverDB = {shield = mtfShield()}}})
+    equal(priest.suf.db.shield.scale, 100, "no source for a Priest")
+    equal(copied(priest, ""), 0)
+end)
+test("damaged copied settings are repaired", function()
+    local state = fixture({class = "MAGE", globals = {MageToolsForeverDB = {shield = {enabled = "yes",
+        scale = 999, textScale = "big", breakSoundKey = 7, position = {point = "LEFT", x = "far"}}}}})
+    local shield = state.suf.db.shield
+    equal(shield.enabled, true)
+    equal(shield.scale, 150)
+    equal(shield.textScale, 100)
+    equal(shield.breakSoundKey, "fadingslow")
+    equal(shield.position, nil, "a broken place is dropped")
+    equal(state.suf.db.migratedFrom, "MageToolsForever")
+    for _, broken in ipairs({"text", 5, {shield = "nope"}}) do
+        local other = fixture({class = "MAGE", globals = {MageToolsForeverDB = broken}})
+        equal(other.suf.db.shield.scale, 100, "no usable source: DSU's defaults")
+        equal(copied(other, ""), 0)
+    end
+end)
+test("with no source, a new character starts at DSU's defaults", function()
+    local state = fixture({class = "MAGE"})
+    equal(state.suf.db.shield.scale, 100)
+    equal(state.suf.db.migratedFrom, nil)
+    equal(copied(state, ""), 0)
+    equal(fixture({db = {migratedFrom = 5}}).suf.db.migratedFrom, nil, "repaired on load")
 end)
 
 -- Hosts of the shared display without widgets (MTF and WTF 1.1.0) ----------------

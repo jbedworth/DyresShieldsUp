@@ -20,6 +20,18 @@ local TOOLKIT_FUNCTIONS = {"RegisterAddOn", "RegisterSettingsCategory", "IsLocke
 local TOOLKIT_MISSING = "Dyre's Shields Up needs Dyre's Toolkit 2.0 or later: install or update it from "
     .. "CurseForge. DSU stays off until then."
 local WIDGET_KEY = "shield"
+-- Mage Tools Forever and Warlock Tools Forever drew this display before DSU
+-- drew it for everyone (author-approved, 1.2.0): a character's first DSU login
+-- copies its class's AddOn's shield settings once, so no layout resets. By
+-- class, since both AddOns make a default shield table on every class.
+local SETTINGS_SOURCES = {
+    MAGE = {addon = "MageToolsForever", title = "Mage Tools Forever", saved = "MageToolsForeverDB"},
+    WARLOCK = {addon = "WarlockToolsForever", title = "Warlock Tools Forever", saved = "WarlockToolsForeverDB"},
+}
+-- The same keys in all three (the shared display's Sanitize); not locked,
+-- which is the toolkit's lock.
+local COPIED_KEYS = {"enabled", "number", "breakSound", "breakSoundKey", "scale", "textScale", "iconScale",
+    "position"}
 DSU.available = false
 
 function DSU.Report(message)
@@ -84,7 +96,34 @@ function DSU.SanitizeDB(db)
     if DSU.ShieldDisplay then
         db.shield = DSU.ShieldDisplay.Sanitize(db.shield)
     end
+    if type(db.migratedFrom) ~= "string" then
+        db.migratedFrom = nil
+    end
     return db
+end
+
+-- Once per character, only when DSU had no saved settings here: the class's
+-- AddOn's shield settings, read (never written) and repaired. Saved variables
+-- of every enabled AddOn are loaded by PLAYER_LOGIN.
+function DSU.CopyShieldSettings()
+    if not DSU.newCharacter or DSU.db.migratedFrom or type(UnitClass) ~= "function" then
+        return
+    end
+    local _, class = UnitClass("player")
+    local source = SETTINGS_SOURCES[class]
+    local saved = source and rawget(_G, source.saved)
+    local shield = type(saved) == "table" and saved.shield
+    if type(shield) ~= "table" then
+        return
+    end
+    local copy = {}
+    for _, key in ipairs(COPIED_KEYS) do
+        copy[key] = shield[key]
+    end
+    -- Sanitize builds new tables, the position too, so the source stays as it is.
+    DSU.db.shield = DSU.ShieldDisplay.Sanitize(copy)
+    DSU.db.migratedFrom = source.addon
+    DSU.Report("Copied your shield settings from " .. source.title .. ".")
 end
 
 -- Another AddOn can register the same slash command; the last one loaded wins.
@@ -210,6 +249,8 @@ SLASH_DYRESSHIELDSUP2 = BACKUP_SLASH
 SlashCmdList[SLASH_KEY] = function(message) DSU.HandleCommand(message) end
 
 local function LoadDB()
+    -- No saved settings: DSU has never run on this character.
+    DSU.newCharacter = DyresShieldsUpDB == nil
     DyresShieldsUpDB = DSU.SanitizeDB(DyresShieldsUpDB)
     DSU.db = DyresShieldsUpDB
 end
@@ -241,6 +282,9 @@ events:SetScript("OnEvent", function(self, event, loadedName)
         DSU.Report(message)
         return
     end
+    -- Before the display reads its settings; also when DSU then stays off, so
+    -- the copy is there once the toolkit is.
+    DSU.CopyShieldSettings()
     local toolkit = DSU.Toolkit()
     if not toolkit then
         DSU.available = false

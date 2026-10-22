@@ -149,6 +149,17 @@ Forever.
   through `OpenSettings`, never in combat. DSU never moves, scales, or saves
   the ring itself. tests/run.lua loads the toolkit's real files from
   tests/toolkit, which must match ../DyresToolkit.
+- Settings from MTF and WTF (author-approved, 1.2.0, the first step of DSU
+  drawing the shield for everyone): `DSU.CopyShieldSettings` at PLAYER_LOGIN,
+  before the display starts, only when `DyresShieldsUpDB` was nil at load
+  (`DSU.newCharacter`) and `db.migratedFrom` is unset. The source is by class
+  (`MageToolsForeverDB.shield` on a Mage, `WarlockToolsForeverDB.shield` on a
+  Warlock), since both make a default shield table on every class. Keys one
+  to one (enabled, number, breakSound, breakSoundKey, scale, textScale,
+  iconScale, position; never locked, the toolkit's), through `Sanitize`, so
+  the copy is new tables and the source is never written. It records
+  `migratedFrom` and says once "Copied your shield settings from <AddOn>."
+  An AddOn disabled at that login is not loaded, so nothing is copied.
 - Commands: `/dsu` and `/dsu options`, `unlock`, `lock`, `reset`,
   `debug_shield` (runs even when DSU is unavailable). Backup slash
   `/shieldsup`; a clash on `/dsu` is reported once at login.
