@@ -1,7 +1,8 @@
 # Dyre's Shields Up
 
-The shield display from Mage Tools Forever, on its own, for any class in World
-of Warcraft: Forever. Settings are in **Options → AddOns → Dyre's AddOns →
+A shield display for any class in World of Warcraft: Forever, and the one
+shield display for all of Dyre's AddOns: Mage Tools Forever and Warlock Tools
+Forever use it too. Settings are in **Options → AddOns → Dyre's AddOns →
 Shields Up**, or type `/dsu`. They are saved per character. Needs **Dyre's
 Toolkit** 2.0 or later, which the CurseForge app installs with it. Formerly
 Shields Up Forever (`/suf`).
@@ -34,11 +35,13 @@ shield is used up.
 - **Display size** shrinks or grows the crescents from their center
   (50-150%). The number and the icons keep their size; **Text size** and
   **Icon size** set them (50-150% each), and **Reset size** puts all three
-  back to 100%. The number can be turned
-  off, and a sound can play when a shield ends or breaks, also in combat. The
-  sounds come from **Dyre's Sounds**, which the CurseForge app installs with
-  DSU; otherwise get it from CurseForge or github.com/jbedworth/DyresSounds.
-  Without it, DSU works but plays no sound.
+  back to 100%. The number can be turned off, and a sound can play when a
+  shield ends or breaks, also in combat. The sounds come from **Dyre's
+  Sounds**, which the CurseForge app installs with DSU; otherwise get it from
+  CurseForge or github.com/jbedworth/DyresSounds. Without it, DSU works but
+  plays no sound.
+- Tiny absorbs (under 25 points or 5% of your health, whichever is larger,
+  such as a Paladin's Seal of Righteousness) never show.
 - Locked (the default), it never blocks clicks on the world. Unlocked, it
   shows a full sample of every part, outlined, to drag; `/dsu reset` puts it
   back.
@@ -63,19 +66,20 @@ install it from CurseForge.
 
 ## With Mage Tools Forever or Warlock Tools Forever
 
-The first time Dyre's Shields Up runs on a character, a Mage's shield
-settings from Mage Tools Forever (or a Warlock's from Warlock Tools Forever)
-are copied once: place, sizes, the number, and the sound. DSU says so in
-chat. A character that already has DSU settings keeps them, and the other
-AddOn's own settings are left as they are.
+Mage Tools Forever (1.2.0 and later) and Warlock Tools Forever (1.3.0 and
+later) leave the shield to Dyre's Shields Up and require it, so the
+CurseForge app installs it with them. The first time Dyre's Shields Up runs
+on a character, a Mage's shield settings from Mage Tools Forever (or a
+Warlock's from Warlock Tools Forever) are copied once: place, sizes, the
+number, and the sound. DSU says so in chat. A character that already has DSU
+settings keeps them, and the other AddOn's own settings are left as they are.
 
-Both ship the same display. Installed together, you still see one ring: the
-newest version among the AddOns running on your character draws it, and on
-the same version the first AddOn loaded does (the game loads them in folder
-order, so Dyre's Shields Up before Mage Tools Forever before Warlock Tools
-Forever). MTF runs only on a Mage and WTF only on a Warlock, so on any other
-class DSU draws it. When another AddOn draws it, DSU says so once at login,
-and its settings and commands point you to that AddOn's settings.
+Older versions of Mage Tools Forever and Warlock Tools Forever ship the same
+display. Installed together, you still see one ring: the newest version
+among the AddOns running on your character draws it, and on the same version
+the first AddOn loaded does (Dyre's Shields Up, by folder order). When
+another AddOn draws it, DSU says so once at login, and its settings and
+commands point you to that AddOn's settings.
 
 ## Commands
 
@@ -90,9 +94,9 @@ and its settings and commands point you to that AddOn's settings.
 
 ## Compatibility
 
-For the Forever beta client 1.60.1 (build 70450, Interface 16001). DSU keeps working
-on later beta builds; if a client update removes an API it needs, it says so
-in chat and the display stays off.
+For World of Warcraft: Forever 1.60.1 (tested on build 70450, Interface
+16001). If a client update removes an API it needs, it says so in chat and
+the display stays off.
 
 **Verified in client:** Dyre's Shields Up loads and works on a Paladin, and
 Forever uses Classic's spell IDs for the Paladin bubbles (Divine Shield,
@@ -105,9 +109,9 @@ Shield, Fire Ward, and Power Word: Shield (a Priest's shield on a Mage showed
 correctly).
 
 **Not yet verified in client:** a Priest casting Power Word: Shield on
-themself, Warlock shields (Shadow Ward, Sacrifice), the break sound, the
-ring dropping at zero absorb in combat, and only one ring showing with MTF or
-WTF also installed. [TESTING.md](TESTING.md) has the checklist.
+themself, Warlock shields (Shadow Ward, Sacrifice), the break sound, and the
+ring dropping at zero absorb in combat. [TESTING.md](TESTING.md) has the
+checklist.
 
 WowUp users (2.24.0 or later): install from the repository URL; GitHub releases
 carry the Forever metadata WowUp needs.
