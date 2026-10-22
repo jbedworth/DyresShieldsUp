@@ -395,6 +395,8 @@ local function fixture(options)
     -- leaves it out; options.oldToolkit offers contract 1 only.
     if not options.noToolkit then
         state.toolkitNS = {InitializeMinimap = function() end}
+        -- Toolkit 2.2.1 snaps to the grid by default; these tests drop frames without it.
+        env.DyresToolkitDB = env.DyresToolkitDB or {snapToGrid = false}
         for _, path in ipairs(TOOLKIT_FILES) do
             local chunk = assert(loadfile("tests/toolkit/" .. path))
             setfenv(chunk, env)
@@ -495,7 +497,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.1.0 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.1.1 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
@@ -925,7 +927,15 @@ test("the size sliders: crescents, then the number, then the icons", function()
     for _, initializer in ipairs(state.categories[PAGE].initializers) do
         if initializer.setting.variable:find("^DYRE_") then order[#order + 1] = initializer.setting.name end
     end
-    equal(table.concat(order, ", "), "Display size (%), Text size (%), Icon size (%)")
+    equal(table.concat(order, ", "), "Display size, Text size, Icon size", "no (%): the values show it")
+    -- While another AddOn draws the ring, DSU's own greyed slider shows the % too.
+    local elsewhere = fixture({class = "MAGE",
+        shieldCopies = {{addon = "MageToolsForever", before = true, runs = true}}})
+    local own = elsewhere.settings.DSU_SHIELD_SCALE
+    equal(own.name, "Display size")
+    for _, initializer in ipairs(elsewhere.categories[PAGE].initializers) do
+        if initializer.setting == own then equal(initializer.options.formatter(85), "85%") end
+    end
     equal(fixture({db = {shield = {textScale = 999, iconScale = "big"}}}).suf.db.shield.textScale, 150,
         "repaired on load")
 end)

@@ -44,7 +44,9 @@ end
 local function SliderOptions(minValue, maxValue, step)
     local options = Settings.CreateSliderOptions(minValue, maxValue, step)
     if type(MinimalSliderWithSteppersMixin) == "table" and type(options.SetLabelFormatter) == "function" then
-        options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)
+        -- The value shows the % sign, so the label has none (as the toolkit's sliders).
+        options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right,
+            function(value) return string.format("%d%%", value) end)
     end
     return options
 end
@@ -109,7 +111,7 @@ function DSU.InitializeOptions()
         -- The ring is a widget: the toolkit's size slider (from the center,
         -- with its default mark) and "Reset size".
         DSU.toolkit.AddWidgetSettings(category, layout, DSU.shieldWidget, {
-            labels = {scale = "Display size (%)"},
+            labels = {scale = "Display size"},
             tooltips = {
                 scale = "How big the crescents are, in percent. They grow and shrink from their center; the "
                     .. "number and the icons keep their own sizes.",
@@ -120,7 +122,7 @@ function DSU.InitializeOptions()
         })
     else
         -- Another AddOn draws the ring, so this only keeps the saved size.
-        local scale = Proxy("DSU_SHIELD_SCALE", Settings.VarType.Number, "Display size (%)",
+        local scale = Proxy("DSU_SHIELD_SCALE", Settings.VarType.Number, "Display size",
             display.DEFAULT_SCALE,
             function() return DSU.db.shield.scale end,
             function(value)

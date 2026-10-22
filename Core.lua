@@ -167,7 +167,7 @@ local function AdoptRing(frame)
         point = display.DEFAULT_PLACE,
         -- The crescents' size, then the number's and the icon row's, which
         -- the display keeps apart from it (author-approved).
-        sizes = {scale = PartSize(), textScale = PartSize("Text size (%)"), iconScale = PartSize("Icon size (%)")},
+        sizes = {scale = PartSize(), textScale = PartSize("Text size"), iconScale = PartSize("Icon size")},
         sizeOrder = {"scale", "textScale", "iconScale"},
         onLayout = function() DSU.ShieldDisplay.Refresh() end,
         onUnlock = function(_, unlocked)

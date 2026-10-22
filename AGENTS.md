@@ -130,7 +130,8 @@ Forever.
   display, Show the absorb amount, Sound when a shield ends and its Sound
   choice, then the toolkit's sliders (`AddWidgetSettings`, 50-150% in steps
   of 5, each with its default mark): Display size (the crescents), Text size,
-  and Icon size, and Reset size for all three. While another AddOn draws the
+  and Icon size, and Reset size for all three; labels carry no "(%)", since
+  the values show the % sign. While another AddOn draws the
   ring, a greyed slider of DSU's own keeps the saved size.
 - Dyre's Toolkit 2.0 (contract 2) is required (author: "all the widget layout,
   snapping, modifier key move rules, etc., centralized in Dyre's Tools"):
