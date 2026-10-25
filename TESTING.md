@@ -135,6 +135,12 @@ carry over:
       at MTF's sizes, with its number and sound; DSU's page shows them.
       `/reload`: no second line. The same on a Warlock with Warlock Tools
       Forever. A character with DSU settings keeps them, with no line.
+- [ ] Classic Era and Anniversary: the icon row and the Mana Shield and bubble
+      crescents show and go with the buffs, also in combat; the outer
+      crescent fills with the shield's amount (or, with no amount from the
+      client, drains with the shield's time and shows no number) and goes the
+      moment the shield breaks, also in combat; `/dsu debug_shield` says
+      `engine=lua`; no BugSack errors.
 - [ ] With Dyre's Toolkit disabled (or older than 2.0), DSU stays off and
       says once to install it from CurseForge.
 - [ ] With an MTF or WTF that ships Shield.lua v10 on a Mage or Warlock

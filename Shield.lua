@@ -85,6 +85,29 @@ local INNERMOST_SPAN = 70 / 128
 local DEFAULT_POINT = {"CENTER", "CENTER", 20, -20}
 -- Scale changes smaller than this are none (the client returns floats).
 local SCALE_EPSILON = 0.01
+-- Classic Era and Anniversary (AuraEngine "lua": no engine, nothing secret):
+-- the client's absorb total stays 0 there and the shield buffs' points are
+-- empty (found in client, Era 1.15.9, Fire Ward), so the amount comes from
+-- elsewhere. "auto": the client's total when above 0, else the buffs' points
+-- (AuraData.points[1]) when they carry one, else the log, else the crescent
+-- drains with the time left and shows no number. The log: each shield's
+-- base absorb from BASE_ABSORB by its rank (from the cast, or the buff's
+-- spell ID for one another player put on you), less what
+-- COMBAT_LOG_EVENT_UNFILTERED's SPELL_ABSORBED says it took (registered only
+-- there: Forever refuses that event). "log", "points", and "time" force one.
+-- Forever never reads this.
+local CLASSIC_AMOUNT = "auto"
+-- Each rank's base absorb, without spell power, for "log" (Classic values;
+-- to be checked in client). By spell ID, in SHIELDS' rank order.
+local BASE_ABSORB = {
+    [11426] = 438, [13031] = 549, [13032] = 678, [13033] = 818,
+    [543] = 165, [8457] = 290, [8458] = 470, [10223] = 675, [10225] = 875,
+    [6143] = 165, [8461] = 290, [8462] = 470, [10177] = 675, [28609] = 875,
+    [17] = 44, [592] = 88, [600] = 158, [3747] = 234, [6065] = 301, [6066] = 381, [10898] = 484,
+    [10899] = 605, [10900] = 763, [10901] = 942,
+    [6229] = 290, [11739] = 470, [11740] = 675, [28610] = 875,
+    [7812] = 305, [19438] = 510, [19440] = 770, [19441] = 1095, [19442] = 1470, [19443] = 1905,
+}
 -- Where the number goes: under the crescent's foot, in texture fractions.
 local TEXT_X = 0.8
 local TEXT_Y = 0.02
@@ -184,7 +207,7 @@ local copy = {version = VERSION, addon = addonName, protocol = 2, eligible = fal
 registry.copies[#registry.copies + 1] = copy
 
 local host
-local shield = {names = {}, ends = {}, latest = nil, otherEnds = nil, lastEnd = 0, soundIDs = {},
+local shield = {names = {}, ends = {}, logged = {}, latest = nil, otherEnds = nil, lastEnd = 0, soundIDs = {},
     deferred = false}
 local frame
 
@@ -327,6 +350,112 @@ local function MinimumAbsorb()
     return math.max(MIN_ABSORB, math.floor(maxHealth * MIN_ABSORB_SHARE))
 end
 
+-- Classic: plain aura reads, and an absorb total that stays 0.
+local function PlainClient()
+    return type(ns.AuraEngineKind) == "function" and ns.AuraEngineKind() == "lua"
+end
+
+local function ShieldAura(entry)
+    if type(C_UnitAuras) ~= "table" or type(C_UnitAuras.GetAuraDataBySpellName) ~= "function" then
+        return nil
+    end
+    local name = C_Spell.GetSpellName(entry.spell)
+    local aura = name and C_UnitAuras.GetAuraDataBySpellName("player", name, "HELPFUL")
+    return type(aura) == "table" and aura or nil
+end
+
+-- The absorb shields' buff points, summed; nil when none carries a number.
+local function AuraPoints()
+    local total, found = 0, false
+    for _, entry in ipairs(SHIELDS) do
+        if not entry.timed then
+            local aura = ShieldAura(entry)
+            local points = aura and type(aura.points) == "table" and aura.points[1]
+            if type(points) == "number" and points > 0 then
+                total, found = total + points, true
+            end
+        end
+    end
+    return found and total or nil
+end
+
+-- "log": what is left of each cast's base absorb.
+local function LoggedAmount()
+    local total, found = 0, false
+    for key, left in pairs(shield.logged) do
+        if shield.ends[key] and shield.ends[key] > GetTime() then
+            total, found = total + math.max(0, left), true
+        end
+    end
+    return found and total or nil
+end
+
+-- The amount on Classic, or nil to drain by time.
+local function ClassicAmount(absorb)
+    if CLASSIC_AMOUNT == "time" then
+        return nil
+    end
+    if CLASSIC_AMOUNT == "log" then
+        return LoggedAmount()
+    end
+    if CLASSIC_AMOUNT == "points" then
+        return AuraPoints()
+    end
+    if type(absorb) == "number" and absorb > 0 then
+        return absorb
+    end
+    return AuraPoints() or LoggedAmount()
+end
+
+-- The latest absorb shield still up, and when it ends.
+local function LatestAbsorbShield()
+    local now, best = GetTime(), nil
+    for _, entry in ipairs(SHIELDS) do
+        local ends = shield.ends[entry.key]
+        if not entry.timed and ends and ends > now and (not best or entry.key == shield.latest) then
+            best = entry
+        end
+    end
+    return best, best and shield.ends[best.key]
+end
+
+-- Classic without an amount: the crescent full, draining with the shield's
+-- time left (the client's timer bar, no OnUpdate), and no number.
+local function FillByTime()
+    local entry, ends = LatestAbsorbShield()
+    frame.visible:SetAlpha(1)
+    frame.gate:SetMinMaxValues(0, 1)
+    frame.gate:SetValue(1)
+    frame.textGate:SetMinMaxValues(0, 1)
+    frame.textGate:SetValue(0)
+    frame.text:SetText("")
+    frame.bar:Hide()
+    frame.timeBar:Show()
+    if not entry then
+        -- Only an inner crescent's shield is up: nothing to fill.
+        frame.visible:SetAlpha(0)
+        frame.timeBar.timeKey = nil
+        return
+    end
+    local key = entry.key .. ":" .. ends
+    if frame.timeBar.timeKey == key then
+        return
+    end
+    frame.timeBar.timeKey = key
+    local direction = type(Enum) == "table" and Enum.StatusBarTimerDirection
+        and Enum.StatusBarTimerDirection.RemainingTime
+    if type(frame.timeBar.SetTimerDuration) == "function" and direction and type(C_DurationUtil) == "table"
+            and type(C_DurationUtil.CreateDuration) == "function" then
+        local duration = C_DurationUtil.CreateDuration()
+        duration:SetTimeFromEnd(ends, entry.seconds)
+        local immediate = Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or 0
+        frame.timeBar:SetTimerDuration(duration, immediate, direction)
+    else
+        frame.timeBar:SetMinMaxValues(0, entry.seconds)
+        frame.timeBar:SetValue(math.max(0, ends - GetTime()))
+    end
+end
+
 -- The client hands both values over as they are, secret or not.
 local function UpdateFill()
     if not frame then
@@ -338,12 +467,28 @@ local function UpdateFill()
         frame.gate:SetValue(1)
         frame.textGate:SetMinMaxValues(0, 1)
         frame.textGate:SetValue(1)
+        frame.timeBar:Hide()
+        frame.timeBar.timeKey = nil
+        frame.bar:Show()
         frame.bar:SetMinMaxValues(0, 1)
         frame.bar:SetValue(SAMPLE_FILL)
         frame.text:SetText(SAMPLE_TEXT)
         return
     end
     local absorb = UnitGetTotalAbsorbs("player")
+    if PlainClient() and not IsSecret(absorb) then
+        local amount = ClassicAmount(absorb)
+        if not amount then
+            FillByTime()
+            return
+        end
+        absorb = amount
+        -- Its size: the most seen since the shield landed.
+        shield.size = math.max(shield.size or 0, amount)
+    end
+    frame.timeBar:Hide()
+    frame.timeBar.timeKey = nil
+    frame.bar:Show()
     frame.visible:SetAlpha(absorb)
     local minimum = MinimumAbsorb()
     frame.gate:SetMinMaxValues(minimum - 1, minimum)
@@ -419,6 +564,7 @@ function ShieldDisplay.Refresh()
     local up, color = ActiveShields()
     local shown = color or SHIELDS[1].color
     frame.bar:SetStatusBarColor(shown[1], shown[2], shown[3])
+    frame.timeBar:SetStatusBarColor(shown[1], shown[2], shown[3])
     -- An adopted ring is the host's to place, size, and outline.
     if not frame.adopted then
         ScaleFromCenter(settings.scale / 100)
@@ -437,7 +583,8 @@ function ShieldDisplay.Refresh()
     -- Protection), so the display stays shown: the outer crescent's opacity
     -- is the absorb, invisible with none, and the engine shows each icon and
     -- timed crescent only while its buff is up.
-    if settings.enabled and (up or InCombatLockdown() or not settings.locked) then
+    -- (Classic reads buffs in combat, so there only a shield up shows it.)
+    if settings.enabled and (up or (InCombatLockdown() and not PlainClient()) or not settings.locked) then
         UpdateFill()
         frame:Show()
     else
@@ -462,6 +609,7 @@ local function KnownUp()
 end
 
 local function EndShield(key)
+    shield.logged[key] = nil
     if shield.ends[key] then
         shield.ends[key] = nil
         shield.lastEnd = GetTime()
@@ -481,8 +629,14 @@ local function OnShieldCast(spellID)
         shield.latest = entry.key
     end
     shield.otherEnds = nil
-    -- The absorb may land before or just after the cast event; both count.
-    shield.size = UnitGetTotalAbsorbs("player")
+    if PlainClient() then
+        -- Classic: the size is the most seen from this cast on.
+        shield.size = nil
+        shield.logged[entry.key] = BASE_ABSORB[spellID]
+    else
+        -- The absorb may land before or just after the cast event; both count.
+        shield.size = UnitGetTotalAbsorbs("player")
+    end
     shield.captureUntil = GetTime() + CAPTURE_SECONDS
     ScheduleRefresh(entry.seconds)
     ShieldDisplay.Refresh()
@@ -492,6 +646,11 @@ end
 -- a trinket) shows for OTHER_SECONDS, unless it is a known shield going.
 local function OnAbsorbChanged()
     local now = GetTime()
+    if PlainClient() then
+        -- Classic: UpdateFill keeps the size.
+        ShieldDisplay.Refresh()
+        return
+    end
     if shield.captureUntil and now <= shield.captureUntil then
         shield.size = UnitGetTotalAbsorbs("player")
     elseif not KnownUp() and now - shield.lastEnd > ENDING_GRACE then
@@ -508,7 +667,8 @@ end
 -- Out of combat your buffs are readable: a known shield that broke early ends,
 -- and one up after a reload, or put on you by another player, shows.
 local function CheckBuffs()
-    if InCombatLockdown() or type(C_UnitAuras) ~= "table"
+    -- Classic reads buffs in combat too, so a shield that breaks early ends at once.
+    if (InCombatLockdown() and not PlainClient()) or type(C_UnitAuras) ~= "table"
         or type(C_UnitAuras.GetAuraDataBySpellName) ~= "function" then
         return
     end
@@ -520,6 +680,11 @@ local function CheckBuffs()
             EndShield(entry.key)
         else
             anyKnown = true
+            -- Classic's log starts from the buff's own rank when no cast of
+            -- yours set it (another player's Power Word: Shield, a Sacrifice).
+            if PlainClient() and shield.logged[entry.key] == nil and not IsSecret(aura.spellId) then
+                shield.logged[entry.key] = BASE_ABSORB[aura.spellId]
+            end
             local expires = aura.expirationTime
             local ends = type(expires) == "number" and not IsSecret(expires) and expires > 0 and expires
                 or shield.ends[entry.key] or GetTime() + entry.seconds
@@ -641,7 +806,13 @@ end
 
 -- The icon row ----------------------------------------------------------------
 
+-- The icon row's containers: AuraEngine.lua's (Blizzard's engine on Forever,
+-- plain aura reads on Classic Era and Anniversary, which have no engine), or
+-- the engine alone when that file is missing.
 local function HasAuraContainer()
+    if type(ns.AuraEngineKind) == "function" then
+        return ns.AuraEngineKind() ~= nil
+    end
     if type(C_XMLUtil) ~= "table" or type(C_XMLUtil.GetTemplateInfo) ~= "function"
         or type(C_AddOns) ~= "table" or type(C_AddOns.LoadAddOn) ~= "function" then
         return false
@@ -748,7 +919,8 @@ local function SpellSet(entry)
 end
 
 local function NewContainer(parent)
-    local container = CreateFrame("AuraContainer", nil, parent, CONTAINER_TEMPLATE)
+    local container = type(ns.CreateAuraContainer) == "function" and ns.CreateAuraContainer(parent)
+        or CreateFrame("AuraContainer", nil, parent, CONTAINER_TEMPLATE)
     container:SetPoint("TOPLEFT", frame, "TOPLEFT")
     container:SetSize(1, 1)
     return container
@@ -855,6 +1027,12 @@ local function CreateRing()
     FitCrescent(frame.bar, OUTER_SPAN)
     frame.bar:SetStatusBarTexture(ARC_TEXTURE)
     frame.bar:SetOrientation("VERTICAL")
+    -- Classic without an amount: the same crescent, drained by the shield's time.
+    frame.timeBar = CreateFrame("StatusBar", nil, frame.gated)
+    FitCrescent(frame.timeBar, OUTER_SPAN)
+    frame.timeBar:SetStatusBarTexture(ARC_TEXTURE)
+    frame.timeBar:SetOrientation("VERTICAL")
+    frame.timeBar:Hide()
     -- The number: under the crescent's foot, in the opacity frame, at its own
     -- size, behind a gate of its own. The anchor point is in the ring, so the
     -- number follows the foot as the crescents grow; no offsets, since they
@@ -927,9 +1105,33 @@ local function CreateRing()
     PlaceRing()
 end
 
+-- "log" on Classic: SPELL_ABSORBED on you takes its amount from the shield
+-- that absorbed it. The absorbing spell and the amount are the last fields
+-- (a trailing "critical" flag may follow), so both the melee and the spell
+-- layouts read the same way.
+local DEST_GUID = 8
+local function OnCombatLog()
+    local info = {CombatLogGetCurrentEventInfo()}
+    if info[2] ~= "SPELL_ABSORBED" or info[DEST_GUID] ~= UnitGUID("player") then
+        return
+    end
+    local last = #info
+    if type(info[last]) ~= "number" then
+        last = last - 1
+    end
+    local amount, spellID = info[last], info[last - 3]
+    local entry = type(spellID) == "number" and shield.names[C_Spell.GetSpellName(spellID)]
+    if entry and type(amount) == "number" and shield.logged[entry.key] then
+        shield.logged[entry.key] = shield.logged[entry.key] - amount
+        ShieldDisplay.Refresh()
+    end
+end
+
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event, ...)
-    if event == "UNIT_SPELLCAST_SUCCEEDED" then
+    if event == "COMBAT_LOG_EVENT_UNFILTERED" then
+        OnCombatLog()
+    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         local _, _, spellID = ...
         OnShieldCast(spellID)
     elseif event == "UNIT_ABSORB_AMOUNT_CHANGED" then
@@ -971,6 +1173,11 @@ local function Start()
     CreateSample()
     if frame.adopted then
         host.layout.adopt(frame)
+    end
+    -- Only on Classic, and only for "log": Forever refuses this event.
+    if (CLASSIC_AMOUNT == "log" or CLASSIC_AMOUNT == "auto") and PlainClient()
+            and type(CombatLogGetCurrentEventInfo) == "function" then
+        events:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     end
     for _, event in ipairs({"UNIT_SPELLCAST_SUCCEEDED", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_MAXHEALTH",
         "UNIT_AURA"}) do
@@ -1121,8 +1328,9 @@ function ShieldDisplay.ReportDebug(report)
         if not frame then
             return
         end
-        Report(string.format("iconRow=%s template=%s", tostring(frame.icons ~= nil),
-            tostring(HasAuraContainer())))
+        local kind = type(ns.AuraEngineKind) == "function" and ns.AuraEngineKind()
+        Report(string.format("iconRow=%s engine=%s", tostring(frame.icons ~= nil),
+            tostring(kind or HasAuraContainer())))
         for _, entry in ipairs(SHIELDS) do
             local button = frame.iconButtons and frame.iconButtons[entry.key]
             if button then

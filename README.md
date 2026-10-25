@@ -95,8 +95,16 @@ commands point you to that AddOn's settings.
 ## Compatibility
 
 For World of Warcraft: Forever 1.60.1 (tested on build 70450, Interface
-16001). If a client update removes an API it needs, it says so in chat and
-the display stays off.
+16001) and World of Warcraft Classic Era 1.15.9 (tested on build 70003). If
+a client update removes an API it needs, it says so in chat and the display
+stays off.
+
+On Classic Era the game gives AddOns no absorb amount, so the crescent's
+number starts from the shield's base absorb for its rank (without spell
+power, so a little under the real one) and goes down with what the combat
+log says each hit absorbed; a shield of a rank it doesn't know drains with
+its time left, with no number. The sound when a shield ends doesn't play
+there yet: Classic Era has no way for an AddOn to ask for it.
 
 **Verified in client:** Dyre's Shields Up loads and works on a Paladin, and
 Forever uses Classic's spell IDs for the Paladin bubbles (Divine Shield,

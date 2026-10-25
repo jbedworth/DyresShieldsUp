@@ -25,7 +25,7 @@ local function contains(actual, fragment, context)
 end
 
 local ADDON = "DyresShieldsUp"
-local RUNTIME_FILES = {"Commands.lua", "Core.lua", "Shield.lua", "Options.lua"}
+local RUNTIME_FILES = {"Commands.lua", "Core.lua", "AuraEngine.lua", "Shield.lua", "Options.lua"}
 -- Dyre's Toolkit's runtime files, without the minimap (it needs the embedded
 -- libraries); tests/toolkit holds a copy, checked against ../DyresToolkit.
 local TOOLKIT_FILES = {"Core.lua", "Layout.lua", "Widgets.lua", "Settings.lua"}
@@ -35,7 +35,7 @@ local SPELLS = {
     [11426] = "Ice Barrier", [13031] = "Ice Barrier", [1463] = "Mana Shield", [543] = "Fire Ward",
     [6143] = "Frost Ward", [17] = "Power Word: Shield", [592] = "Power Word: Shield", [6229] = "Shadow Ward",
     [7812] = "Sacrifice", [642] = "Divine Shield", [498] = "Divine Protection",
-    [1022] = "Blessing of Protection", [585] = "Smite"}
+    [1022] = "Blessing of Protection", [585] = "Smite", [25217] = "Power Word: Shield"}
 local POWER_WORD_SHIELD, ICE_BARRIER, SMITE = 17, 11426, 585
 
 -- A secret stands in for the client's opaque combat values; tests mark them with
@@ -101,7 +101,9 @@ local function fixture(options)
         for _, timer in ipairs(due) do timer.callback() end
     end
     env.C_XMLUtil = {GetTemplateInfo = function(name)
-        if name == "CustomAuraContainerTemplate" and not options.noAuraContainer then return {} end
+        if name == "CustomAuraContainerTemplate" and not options.noAuraContainer and not options.classic then
+            return {}
+        end
     end}
     env.C_AddOns.IsAddOnLoaded = function(name) return state.loadedAddOns and state.loadedAddOns[name] end
     env.C_AddOns.LoadAddOn = function(name)
@@ -117,6 +119,15 @@ local function fixture(options)
     -- Absorbs: always secret, as the client's UnitGetTotalAbsorbs is.
     state.absorb = secret()
     state.secrets[state.absorb] = true
+    -- Classic Era and Anniversary: no engine aura slots, aura reads by index (also
+    -- in combat), and nothing secret. state.auras is the player's buffs.
+    state.auras = {}
+    if options.classic then
+        options.noAuraContainer = true
+        state.absorb = 0
+        state.secrets = {}
+        env.UnitExists = function(unit) return unit == "player" end
+    end
     state.maxHealth = 1500
     env.UnitGetTotalAbsorbs = function(unit) equal(unit, "player") return state.absorb end
     env.UnitHealthMax = function(unit) equal(unit, "player") return state.maxHealth end
@@ -188,6 +199,31 @@ local function fixture(options)
             return state.buffs[name]
         end,
     }
+    if options.classic then
+        -- Classic reads auras by index, also in combat.
+        env.C_UnitAuras.GetAuraDataByIndex = function(unit, index, filter)
+            equal(unit, "player")
+            equal(filter, "HELPFUL")
+            return state.auras[index]
+        end
+        env.C_UnitAuras.AddAuraSound, env.C_UnitAuras.RemoveAuraSound = nil, nil
+        -- Readable in combat too, from the same buffs.
+        env.C_UnitAuras.GetAuraDataBySpellName = function(unit, name, filter)
+            equal(unit, "player")
+            equal(filter, "HELPFUL")
+            for _, aura in ipairs(state.auras) do
+                if aura.name == name then return aura end
+            end
+            return state.buffs[name]
+        end
+        env.UnitGUID = function(unit) return unit == "player" and "Player-1" or nil end
+        env.CombatLogGetCurrentEventInfo = function() return unpack(state.combatLog or {}) end
+        env.C_DurationUtil = {CreateDuration = function()
+            local duration = {}
+            function duration:SetTimeFromEnd(ends, length) self.ends, self.length = ends, length end
+            return duration
+        end}
+    end
 
     -- Settings: proxy settings with getters and setters, as the client builds them.
     if not options.noSettings then
@@ -268,6 +304,9 @@ local function fixture(options)
         function object:SetMinMaxValues(minValue, maxValue) self.minValue, self.maxValue = minValue, maxValue end
         function object:SetStatusBarTexture(texture) self.statusBarTexture = texture end
         function object:SetValue(value) self.value = value end
+        function object:SetTimerDuration(duration, interpolation, direction)
+            self.timer = {duration = duration, interpolation = interpolation, direction = direction}
+        end
         function object:GetStatusBarTexture()
             self.fill = self.fill or widget("Texture", nil, self)
             return self.fill
@@ -299,7 +338,8 @@ local function fixture(options)
             if value then self:Show() else self:Hide() end
         end
         function object:RegisterEvent(event)
-            if event == "COMBAT_LOG_EVENT_UNFILTERED" then
+            -- As on Forever; Classic allows it.
+            if event == "COMBAT_LOG_EVENT_UNFILTERED" and not options.classic then
                 error("COMBAT_LOG_EVENT_UNFILTERED is restricted")
             end
             self.events[event] = true
@@ -451,6 +491,14 @@ local function fixture(options)
     state.suf = {}
     for _, path in ipairs(options.files or RUNTIME_FILES) do
         local chunk, message = loadfile(path)
+        if path == "Shield.lua" and options.classicAmount then
+            -- The one-word switch for the Classic amount.
+            local source = assert(io.open(path)):read("*a")
+            local switched, count = source:gsub('local CLASSIC_AMOUNT = "auto"',
+                'local CLASSIC_AMOUNT = "' .. options.classicAmount .. '"')
+            equal(count, 1, "the switch")
+            chunk, message = loadstring(switched, "=Shield.lua")
+        end
         if not chunk then error(message) end
         setfenv(chunk, env)
         chunk(ADDON, state.suf)
@@ -497,7 +545,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.2.0 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.2.1 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
@@ -1005,6 +1053,178 @@ test("the toolkit copy the tests load matches ../DyresToolkit when it is there",
             own:close()
         end
     end
+end)
+
+-- Classic Era and Anniversary: the icon row without the engine ------------------------
+
+local function classicAura(state, spellID, duration)
+    state.auras[#state.auras + 1] = {spellId = spellID, name = SPELLS[spellID], icon = 3000 + spellID,
+        duration = duration or 0, expirationTime = duration and state.now + duration or 0}
+end
+local function slotButton(container, key)
+    for _, slot in ipairs(container.slots) do
+        if slot.key == key then return slot.button end
+    end
+end
+
+test("on Classic the icon row and timed crescents come from plain aura reads", function()
+    local state = fixture({class = "MAGE", classic = true})
+    local ring = state.ring()
+    equal(ring.icons.kind, "Frame", "the plain-Lua container, not the engine's")
+    equal(ring.crescents.kind, "Frame")
+    local iceBarrier = slotButton(ring.icons, "icebarrier")
+    local manaIcon = slotButton(ring.icons, "manashield")
+    local manaCrescent = slotButton(ring.crescents, "manashield")
+    equal(iceBarrier.shown, false)
+    equal(manaCrescent.shown, false)
+    classicAura(state, ICE_BARRIER, 60)
+    classicAura(state, 1463, 60)
+    state.combat = true
+    state.emit("UNIT_AURA", "player")
+    equal(iceBarrier.shown, true, "shown from the aura, also in combat")
+    equal(iceBarrier.display.icon.texture, 3000 + ICE_BARRIER)
+    equal(manaIcon.shown, true)
+    equal(manaCrescent.shown, true, "Mana Shield's inner crescent")
+    equal(manaCrescent.display.bar.maxValue, 60)
+    equal(manaCrescent.display.bar.value, 60, "full when it lands")
+    equal(manaCrescent.display.icon, nil, "no icon in the crescent slot")
+    state.auras = {}
+    state.emit("UNIT_AURA", "player")
+    equal(iceBarrier.shown, false, "gone the moment the buff goes")
+    equal(manaCrescent.shown, false)
+    equal(ring.iconHolder:GetEffectiveScale(), 1, "the icons keep their own size")
+end)
+test("on Classic a plain absorb fills the ring with no secret tricks needed", function()
+    local state = fixture({class = "PRIEST", classic = true})
+    state.absorb = 300
+    state.cast(POWER_WORD_SHIELD)
+    local ring = state.ring()
+    equal(ring.shown, true)
+    equal(ring.bar.value, 300)
+    equal(ring.visible.alpha, 300, "the opacity is the absorb, capped at 1 by the client")
+    equal(ring.gate.value, 300)
+    state.clear()
+    state.slash("debug_shield")
+    local text = table.concat(state.messages, "|")
+    contains(text, "absorb=300 secret=false")
+    contains(text, "engine=lua")
+    equal(text:find("failed", 1, true), nil, "every debug step ran")
+end)
+test("on Classic the amount comes from the shield buff's points when the total is 0", function()
+    local state = fixture({class = "MAGE", classic = true})
+    local ring = state.ring()
+    classicAura(state, ICE_BARRIER, 60)
+    state.auras[1].points = {438}
+    state.cast(ICE_BARRIER)
+    equal(ring.shown, true)
+    equal(ring.bar.shown, true)
+    equal(ring.timeBar.shown, false)
+    equal(ring.bar.value, 438)
+    equal(ring.bar.maxValue, 438, "its size when it landed")
+    equal(ring.visible.alpha, 438, "visible")
+    equal(ring.text.text.abbreviated, 438)
+    state.combat = true
+    state.auras[1].points = {200}
+    state.emit("UNIT_AURA", "player")
+    equal(ring.bar.value, 200, "drawn down, also in combat")
+    equal(ring.bar.maxValue, 438, "against the size it landed with")
+    equal(ring.gate.value, 200)
+    state.auras = {}
+    state.emit("UNIT_AURA", "player")
+    equal(ring.shown, false, "broken early: gone at once, also in combat")
+end)
+test("on Classic with no amount anywhere, the crescent drains with the time left", function()
+    local state = fixture({classic = true})
+    local ring = state.ring()
+    -- A rank BASE_ABSORB does not know (Anniversary's rank 11), with empty points.
+    classicAura(state, 25217, 30)
+    state.auras[1].points = {}
+    state.cast(25217)
+    equal(ring.shown, true)
+    equal(ring.bar.shown, false)
+    equal(ring.timeBar.shown, true, "the time crescent")
+    equal(ring.visible.alpha, 1)
+    equal(ring.text.text, "", "no number")
+    equal(ring.timeBar.timer.duration.length, 30)
+    equal(ring.timeBar.timer.duration.ends, state.now + 30)
+    equal(ring.timeBar.timer.direction, 1, "draining")
+    equal(ring.timeBar.barColor[3], 0.85, "in the shield's color")
+    local timer = ring.timeBar.timer
+    state.emit("UNIT_AURA", "player")
+    equal(ring.timeBar.timer, timer, "set once per shield, not again each refresh")
+    local forced = fixture({class = "MAGE", classic = true, classicAmount = "time"})
+    classicAura(forced, ICE_BARRIER, 60)
+    forced.auras[1].points = {438}
+    forced.cast(ICE_BARRIER)
+    equal(forced.ring().timeBar.shown, true, "\"time\" ignores points")
+end)
+test("on Classic \"log\" takes a cast's base absorb less what the combat log absorbed", function()
+    local state = fixture({classic = true, classicAmount = "log"})
+    local ring = state.ring()
+    classicAura(state, 592, 30)
+    state.cast(592)
+    equal(ring.bar.value, 88, "rank 2's base absorb")
+    -- A melee hit: the absorbing spell and the amount are the last fields.
+    state.combatLog = {1, "SPELL_ABSORBED", false, "Creature-1", "Wolf", 0, 0, "Player-1", "Me", 0, 0,
+        "Player-2", "Priest", 0, 0, 592, "Power Word: Shield", 2, 30}
+    state.emit("COMBAT_LOG_EVENT_UNFILTERED")
+    equal(ring.bar.value, 58)
+    -- A spell hit, with a trailing critical flag.
+    state.combatLog = {1, "SPELL_ABSORBED", false, "Creature-1", "Wolf", 0, 0, "Player-1", "Me", 0, 0,
+        133, "Fireball", 4, "Player-2", "Priest", 0, 0, 592, "Power Word: Shield", 2, 20, false}
+    state.emit("COMBAT_LOG_EVENT_UNFILTERED")
+    equal(ring.bar.value, 38)
+    state.combatLog = {1, "SPELL_ABSORBED", false, "Creature-1", "Wolf", 0, 0, "Player-9", "Other", 0, 0,
+        "Player-2", "Priest", 0, 0, 592, "Power Word: Shield", 2, 30}
+    state.emit("COMBAT_LOG_EVENT_UNFILTERED")
+    equal(ring.bar.value, 38, "someone else's absorb is not yours")
+    local function listens(fixtureState)
+        for _, frame in ipairs(fixtureState.frames) do
+            if frame.events.COMBAT_LOG_EVENT_UNFILTERED then return true end
+        end
+        return false
+    end
+    equal(listens(fixture({classic = true})), true, "\"auto\" listens on Classic too")
+    equal(listens(fixture({classic = true, classicAmount = "time"})), false)
+    equal(listens(fixture({classic = true, classicAmount = "points"})), false)
+end)
+test("on Era (absorb 0, empty points) \"auto\" shows the base absorb less what the log took", function()
+    -- Found in client, Era 1.15.9: UnitGetTotalAbsorbs 0, Fire Ward's points {}.
+    local state = fixture({class = "MAGE", classic = true})
+    local ring = state.ring()
+    classicAura(state, 543, 30)
+    state.auras[1].points = {}
+    state.cast(543)
+    equal(ring.bar.shown, true)
+    equal(ring.bar.value, 165, "Fire Ward rank 1")
+    equal(ring.text.text.abbreviated, 165)
+    state.combatLog = {1, "SPELL_ABSORBED", false, "Creature-1", "Imp", 0, 0, "Player-1", "Me", 0, 0,
+        133, "Firebolt", 4, "Player-1", "Me", 0, 0, 543, "Fire Ward", 4, 40, false}
+    state.emit("COMBAT_LOG_EVENT_UNFILTERED")
+    equal(ring.bar.value, 125, "a fire hit takes from the ward")
+    equal(ring.bar.maxValue, 165)
+    -- A Power Word: Shield another player put on you: no cast of yours, so the buff's rank.
+    local priest = fixture({class = "WARRIOR", classic = true})
+    classicAura(priest, 592, 30)
+    priest.emit("UNIT_AURA", "player")
+    equal(priest.ring().shown, true)
+    equal(priest.ring().bar.value, 88, "rank 2 from the buff's spell ID")
+end)
+test("Forever keeps the client's secret absorb and never reads the Classic amount", function()
+    local state = fixture({class = "MAGE", classicAmount = "log"})
+    local ring = state.ring()
+    state.cast(ICE_BARRIER)
+    equal(ring.bar.value, state.absorb, "the secret total, unread")
+    equal(ring.timeBar.shown, false)
+    for _, frame in ipairs(state.frames) do
+        equal(frame.events.COMBAT_LOG_EVENT_UNFILTERED, nil, "never the combat log on Forever")
+    end
+end)
+test("Forever keeps Blizzard's engine for the icon row", function()
+    local ring = fixture({class = "MAGE"}).ring()
+    equal(ring.icons.kind, "AuraContainer")
+    equal(ring.icons.template, "CustomAuraContainerTemplate")
+    equal(ring.crescents.kind, "AuraContainer")
 end)
 
 -- Settings from Mage Tools Forever and Warlock Tools Forever -------------------------

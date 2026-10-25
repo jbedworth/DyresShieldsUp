@@ -117,6 +117,24 @@ Forever.
   icon row's frame, the timed crescents' in the ring (so they grow with the
   outer crescent), each set up only in its initializeFrame. A host without
   part sliders gets the number and the icons at 100%.
+- Classic Era and Anniversary (not yet released there; found in client on
+  Era 1.15.9: the icons and Mana Shield's crescent showed, the outer ring was
+  a faint ghost): no engine aura slots, so AuraEngine.lua's plain-Lua slots
+  (copied from WTF) draw the icon row and the timed crescents; nothing is
+  secret and buffs are readable in combat, so CheckBuffs runs in combat there
+  and the ring shows only while a shield is up. The client's absorb total
+  stays 0 and the buffs' points are empty there (Era, Fire Ward), so on that
+  client only (`PlainClient`, the "lua" engine) `CLASSIC_AMOUNT` picks the
+  amount: "auto" (the total when above 0, else `AuraData.points[1]` when it
+  carries one, else the log, else the crescent drains with the time left
+  through `StatusBar:SetTimerDuration` and shows no number), or "log",
+  "points", "time" alone. The log: each rank's base absorb (`BASE_ABSORB`,
+  Classic values without spell power, to be checked in client; seeded from
+  your cast, or the buff's spell ID for a shield from someone else) less the
+  `SPELL_ABSORBED` amounts from `COMBAT_LOG_EVENT_UNFILTERED`, registered only
+  on that client for "auto" and "log" (Forever refuses it). A ward's amount
+  drops only on its own school's hits.
+  Forever never reaches any of it. The size is the most seen since the cast.
 - Version 7 (with MTF and WTF; found in client): every crescent is anchored
   to the display itself. In v5 and v6 the outer crescent was fitted to its
   parent, the minimum-absorb clipping frame, which reaches 40 px below the
@@ -169,10 +187,12 @@ Forever.
 
 ## Project structure
 
-- Runtime files: DyresShieldsUp.toc, Commands.lua, Core.lua, Shield.lua,
+- Runtime files: DyresShieldsUp.toc, Commands.lua, Core.lua, AuraEngine.lua, Shield.lua,
   Options.lua, loaded in that order, plus the three textures. Commands parses
   `/dsu`; Core owns saved settings, the login banner, install checks, slash
-  conflict reporting, the lock, and startup; Options owns the settings page.
+  conflict reporting, the lock, and startup; AuraEngine (copied from WTF) gives
+  the icon row plain-Lua aura slots where the engine is missing (Classic Era
+  and Anniversary); Options owns the settings page.
 - tests/run.lua holds the Lua 5.1 mock suite. tests/test_*.py cover the
   release helpers in scripts/, that the committed textures match
   scripts/build_arc.py, and that the shared files match MTF's and WTF's.
@@ -250,7 +270,7 @@ Forever.
 - Every release needs a `## <version>` section in CHANGELOG.md with
   player-facing changes; the builder puts it at the top of release-notes.md
   and fails without it.
-- Package only DyresShieldsUp.toc, Commands.lua, Core.lua, Shield.lua,
+- Package only DyresShieldsUp.toc, Commands.lua, Core.lua, AuraEngine.lua, Shield.lua,
   Options.lua, LICENSE, Textures/ShieldArc.tga, Textures/ShieldArcInner.tga,
   and Textures/ShieldArcInnermost.tga (no sounds: they ship only in Dyre's
   Sounds) under the top-level `DyresShieldsUp/`

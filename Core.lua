@@ -66,7 +66,8 @@ end
 
 -- Functions other runtime files must define. A mixed install of old and new
 -- files otherwise fails silently, because the client hides Lua errors by default.
-local REQUIRED_NAMESPACE = {"ParseCommand", "HandleCommand", "InitializeOptions", "OpenSettings"}
+local REQUIRED_NAMESPACE = {"ParseCommand", "HandleCommand", "InitializeOptions", "OpenSettings",
+    "CreateAuraContainer", "AuraEngineKind"}
 local REQUIRED_SHIELD = {"Initialize", "Sanitize", "Refresh", "ApplyBreakSound", "PreviewBreakSound",
     "SanitizeBreakSound", "SoundChoices", "SetupSoundMenu", "ResetPosition", "ReportDebug", "IsOwner",
     "OwnerAddOn"}

@@ -4,6 +4,15 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.2.1
+
+### Fixes
+
+- Classic Era: the icons under the crescent now show which shields are up, and come and go with them, also in combat.
+- Classic Era: Mana Shield and the Paladin bubbles (Divine Shield, Divine Protection, Blessing of Protection) drain in their inner crescents again.
+- Classic Era: the crescent shows your shield's amount. The game gives AddOns no absorb amount there, so Dyre's Shields Up starts from the shield's base absorb for its rank and takes off what the combat log says each hit absorbed. A ward only goes down on hits of its own school. A shield of a rank it doesn't know drains with its time left instead, with no number.
+- Classic Era: a shield that breaks early now disappears at once, also in combat.
+
 ## 1.2.0
 
 ### Features
