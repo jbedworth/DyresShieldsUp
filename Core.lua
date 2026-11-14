@@ -1,9 +1,10 @@
 local addonName, DSU = ...
 
--- Dyre's Shields Up: the shield display from Mage Tools Forever on its own,
--- for any class (a Priest in the author's group asked for it). Shield.lua is
--- the shared component, byte-identical in every AddOn that ships it; this file
--- adapts it: saved settings, the lock, slash commands, and startup. The ring
+-- Dyre's Shields Up: the one shield display for every class and every Dyre's
+-- AddOn (a Priest in the author's group asked for it; Mage Tools Forever and
+-- Warlock Tools Forever use it since 1.2.0 and 1.3.0). Shield.lua is the
+-- display; this file adapts it: saved settings, the lock, slash commands, and
+-- startup. The ring
 -- is a Dyre's Toolkit widget (contract 2, author: "all the widget layout,
 -- snapping, modifier key move rules, etc., centralized in Dyre's Tools"): the
 -- toolkit places, drags, snaps, sizes from the center, outlines, and saves

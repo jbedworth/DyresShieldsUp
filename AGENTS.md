@@ -18,12 +18,13 @@ Forever.
 
 ### Shield.lua is shared (author-approved, important)
 
-- Shield.lua is byte-identical in MTF, Warlock Tools Forever (WTF), and DSU,
-  and so are Textures/ShieldArc.tga, ShieldArcInner.tga, and
-  ShieldArcInnermost.tga (built by scripts/build_arc.py). Never edit DSU's
-  copy alone: a behavior change goes into all three copies together, with
-  `VERSION` bumped in each. tests/test_shield_copy.py compares the copies when
-  sibling checkouts exist. Keep DSU's own needs in Core.lua and Options.lua.
+- Shield.lua and Textures/ShieldArc.tga, ShieldArcInner.tga, and
+  ShieldArcInnermost.tga (built by scripts/build_arc.py) were shared with MTF
+  and Warlock Tools Forever (WTF). Since MTF 1.2.0 and WTF 1.3.0 only DSU
+  ships them; older copies still elect one ring through the registry, so a
+  behavior change still bumps `VERSION`. No test compares copies across
+  repositories (author: "that's a stupid thing to test for a shared
+  resource"). Keep DSU's own needs in Core.lua and Options.lua.
 - Its whole interface: `ShieldDisplay.Initialize({settings, report,
   unlockHint, missingSounds, layout})`, `Sanitize` (it owns its defaults, the lock included),
   `SanitizeScale` and the scale constants, `SIZE`, `DEFAULT_PLACE`,
@@ -165,8 +166,10 @@ Forever.
   absorb, and the widget's own alpha is never set. `/dsu unlock` and `lock`
   call the toolkit's lock; `/dsu reset` resets the widget; the page opens
   through `OpenSettings`, never in combat. DSU never moves, scales, or saves
-  the ring itself. tests/run.lua loads the toolkit's real files from
-  tests/toolkit, which must match ../DyresToolkit.
+  the ring itself. tests/run.lua loads the real toolkit from ../DyresToolkit
+  when that checkout is there, else the copy in tests/toolkit (as in CI); no
+  test compares the two, and a test checks that the toolkit it loads offers
+  contract 2 and the functions DSU calls.
 - Settings from MTF and WTF (author-approved, 1.2.0, the first step of DSU
   drawing the shield for everyone): `DSU.CopyShieldSettings` at PLAYER_LOGIN,
   before the display starts, only when `DyresShieldsUpDB` was nil at load

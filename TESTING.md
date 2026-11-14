@@ -12,9 +12,9 @@
    election among AddOns shipping Shield.lua against a minimal mock of the
    client. Mocks model secret values as values that raise errors on
    comparison, concatenation, indexing, or printing.
-   `tests/test_shield_copy.py` checks that Shield.lua and its textures match
-   the copies in sibling Mage Tools Forever and Warlock Tools Forever checkouts
-   (skipped where there are none, as in CI).
+   The suite loads the real Dyre's Toolkit from `../DyresToolkit` when that
+   checkout is there, else the copy in `tests/toolkit` (as in CI). No test
+   compares shared files across repositories.
 3. **In-client checks.** The checklist below covers everything mocks cannot.
 
 ```sh
@@ -42,7 +42,7 @@ from Mage Tools Forever); CI uses ubuntu-24.04's `lua5.1` package and native
 
 ## Found in client
 
-With DSU, MTF, and WTF; Shield.lua is byte-identical in all three, so these
+With DSU, MTF, and WTF, when all three shipped the same Shield.lua, so these
 carry over:
 
 - A list in `includeSpellIDs` matched nothing; the set shows the icons.

@@ -27,8 +27,18 @@ end
 local ADDON = "DyresShieldsUp"
 local RUNTIME_FILES = {"Commands.lua", "Core.lua", "AuraEngine.lua", "Shield.lua", "Options.lua"}
 -- Dyre's Toolkit's runtime files, without the minimap (it needs the embedded
--- libraries); tests/toolkit holds a copy, checked against ../DyresToolkit.
+-- libraries): the real toolkit from ../DyresToolkit when that checkout is
+-- there, else the copy in tests/toolkit (as in CI, which has only this repo).
 local TOOLKIT_FILES = {"Core.lua", "Layout.lua", "Widgets.lua", "Settings.lua"}
+local function ToolkitFolder()
+    local probe = io.open("../DyresToolkit/Core.lua", "rb")
+    if probe then
+        probe:close()
+        return "../DyresToolkit/"
+    end
+    return "tests/toolkit/"
+end
+local TOOLKIT_FOLDER = ToolkitFolder()
 local WIDGET_SCALE = "DYRE_DYRESSHIELDSUP_SHIELD_SCALE"
 local PAGE = "Shields Up"
 local SPELLS = {
@@ -438,7 +448,7 @@ local function fixture(options)
         -- Toolkit 2.2.1 snaps to the grid by default; these tests drop frames without it.
         env.DyresToolkitDB = env.DyresToolkitDB or {snapToGrid = false}
         for _, path in ipairs(TOOLKIT_FILES) do
-            local chunk = assert(loadfile("tests/toolkit/" .. path))
+            local chunk = assert(loadfile(TOOLKIT_FOLDER .. path))
             setfenv(chunk, env)
             chunk("DyresToolkit", state.toolkitNS)
         end
@@ -1043,16 +1053,15 @@ test("without Dyre's Toolkit 2.0 DSU stays off and says once what to install", f
         contains(state.last(), "unavailable")
     end
 end)
-test("the toolkit copy the tests load matches ../DyresToolkit when it is there", function()
-    for _, path in ipairs(TOOLKIT_FILES) do
-        local own = io.open("../DyresToolkit/" .. path, "rb")
-        if own then
-            local copy = assert(io.open("tests/toolkit/" .. path, "rb"))
-            equal(copy:read("*a") == own:read("*a"), true, "tests/toolkit/" .. path .. " is stale: copy it again")
-            copy:close()
-            own:close()
-        end
+test("the toolkit the tests load offers contract 2 and what DSU calls", function()
+    local state = fixture()
+    local toolkit = state.toolkit.RequireContract(2)
+    equal(type(toolkit), "table", "contract 2 from " .. TOOLKIT_FOLDER)
+    for _, name in ipairs({"RegisterAddOn", "RegisterSettingsCategory", "IsLocked", "SetLocked", "OpenSettings",
+        "CreateWidget", "AddWidgetSettings"}) do
+        equal(type(toolkit[name]), "function", name)
     end
+    equal(state.suf.toolkit, toolkit, "DSU joined it")
 end)
 
 -- Classic Era and Anniversary: the icon row without the engine ------------------------
