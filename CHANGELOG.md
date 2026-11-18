@@ -4,6 +4,12 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.3.0
+
+### Features
+
+- Your Dyre's Shields Up settings, the shield display's place and sizes, and its sound are now part of your Dyre's Toolkit profile. On the Toolkit's settings page you can copy them from another character, or export and import them, with the rest of your Dyre's AddOns. A copy applies at once, with no reload. This needs Dyre's Toolkit 2.10.0 or newer; with an older Toolkit, nothing changes.
+
 ## 1.2.1
 
 ### Fixes

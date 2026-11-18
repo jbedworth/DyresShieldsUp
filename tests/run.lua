@@ -29,7 +29,7 @@ local RUNTIME_FILES = {"Commands.lua", "Core.lua", "AuraEngine.lua", "Shield.lua
 -- Dyre's Toolkit's runtime files, without the minimap (it needs the embedded
 -- libraries): the real toolkit from ../DyresToolkit when that checkout is
 -- there, else the copy in tests/toolkit (as in CI, which has only this repo).
-local TOOLKIT_FILES = {"Core.lua", "Layout.lua", "Widgets.lua", "Settings.lua"}
+local TOOLKIT_FILES = {"Core.lua", "Layout.lua", "Widgets.lua", "Settings.lua", "Profiles.lua"}
 local function ToolkitFolder()
     local probe = io.open("../DyresToolkit/Core.lua", "rb")
     if probe then
@@ -91,6 +91,9 @@ local function fixture(options)
         return class:sub(1, 1) .. class:sub(2):lower(), class
     end
     env.GetTime = function() return state.now end
+    -- The toolkit's profile key, "Name - Realm".
+    env.UnitName = function(unit) if unit == "player" then return "Samara" end end
+    env.GetRealmName = function() return "Forever" end
     env.InCombatLockdown = function() return state.combat end
     env.issecretvalue = function(value) return state.secrets[value] == true end
     env.C_Spell = {
@@ -453,6 +456,10 @@ local function fixture(options)
             chunk("DyresToolkit", state.toolkitNS)
         end
         state.toolkit = env.DyresToolkit
+        if options.noProfiles then
+            -- A toolkit from before 2.10.0.
+            env.DyresToolkit.RegisterProfilePart, env.DyresToolkit.ReapplyWidgets = nil, nil
+        end
         if options.oldToolkit then
             local require = env.DyresToolkit.RequireContract
             env.DyresToolkit.RequireContract = function(n)
@@ -555,7 +562,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.2.1 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.3.0 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
@@ -1234,6 +1241,107 @@ test("Forever keeps Blizzard's engine for the icon row", function()
     equal(ring.icons.kind, "AuraContainer")
     equal(ring.icons.template, "CustomAuraContainerTemplate")
     equal(ring.crescents.kind, "AuraContainer")
+end)
+
+-- Dyre's Toolkit Profile (Toolkit 2.10.0) ------------------------------------------
+
+local function otherProfile(shield, extra)
+    local part = {shield = shield}
+    for key, value in pairs(extra or {}) do part[key] = value end
+    return {profiles = {["Alt - Forever"] = {class = "Mage", seen = 1, parts = {DyresShieldsUp = part},
+        pending = {}}}}
+end
+
+test("DSU joins the toolkit's profile when the toolkit offers it", function()
+    local state = fixture()
+    local parts = state.toolkit.ProfileParts()
+    equal(#parts, 1)
+    equal(parts[1], "DyresShieldsUp")
+    local saved = state.toolkitNS.db.profiles["Samara - Forever"].parts.DyresShieldsUp
+    equal(saved.shield.scale, 100, "this character's settings saved in its profile")
+    equal(saved.migratedFrom, nil)
+end)
+test("with a toolkit that has no profiles, DSU works as before", function()
+    local state = fixture({noProfiles = true})
+    equal(state.suf.available, true)
+    equal(state.ring() ~= nil, true)
+    equal(state.said("error"), false)
+end)
+test("Defaults for the profile are DSU's own defaults", function()
+    local state = fixture({class = "MAGE", db = {migratedFrom = "MageToolsForever",
+        shield = {scale = 140, textScale = 70, number = false}}})
+    local ok, reload = state.toolkitNS.profile:CopyFrom(state.toolkit.PROFILE_DEFAULTS)
+    equal(ok, true)
+    equal(#reload, 0, "applied live, no reload")
+    local shield = state.suf.db.shield
+    equal(shield.scale, 100)
+    equal(shield.textScale, 100)
+    equal(shield.number, true)
+    equal(shield.breakSoundKey, "fadingslow")
+    equal(state.suf.db.migratedFrom, "MageToolsForever", "a character key stays")
+    equal(state.ring().scale, 1, "the ring is its default size again")
+end)
+test("a copy from another character applies live and keeps this character's keys", function()
+    local state = fixture({class = "MAGE", db = {migratedFrom = "MageToolsForever"},
+        globals = {DyresToolkitDB = otherProfile({scale = 140, textScale = 120, iconScale = 80, number = false,
+            breakSound = true, breakSoundKey = "magical", locked = false,
+            position = {point = "CENTER", relativePoint = "BOTTOMLEFT", x = 300, y = 200}},
+            {migratedFrom = "WarlockToolsForever"})}})
+    local shield = state.suf.db.shield
+    local ring = state.ring()
+    equal(ring.dyre.store, shield)
+    local ok, reload = state.toolkitNS.profile:CopyFrom("Alt - Forever")
+    equal(ok, true)
+    equal(#reload, 0, "applied live, no reload")
+    equal(state.suf.db.shield, shield, "written in place: the widget's store is the same table")
+    equal(shield.scale, 140)
+    equal(shield.textScale, 120)
+    equal(shield.number, false)
+    equal(shield.breakSoundKey, "magical")
+    equal(shield.locked, true, "the lock stays the toolkit's")
+    equal(state.suf.db.migratedFrom, "MageToolsForever", "this character's own copy record stays")
+    equal(ring.scale, 1.4, "the ring takes the copied size at once")
+    equal(math.abs(ring.text:GetEffectiveScale() - 1.2) < 1e-9, true, "and the number its own")
+    local point = ring.points[#ring.points]
+    equal(point[3], "BOTTOMLEFT")
+    equal(point[4], 300, "and the copied place")
+    state.cast(ICE_BARRIER)
+    equal(ring.text.text, "", "the number setting is live")
+    equal(state.auraSoundCount ~= nil, true, "and the break sound")
+    equal(state.auraSounds[state.auraSoundCount].info.soundFileName,
+        "Interface\\AddOns\\DyresSounds\\Sounds\\MagicalDisappear.mp3")
+end)
+test("export and import carry DSU's settings, and a bad line changes nothing", function()
+    local state = fixture({class = "MAGE", db = {shield = {scale = 130, iconScale = 60}}})
+    local profile = state.toolkitNS.profile
+    local line = profile:Export()
+    contains(line, "DYRE2:profile:")
+    state.settings[WIDGET_SCALE]:SetValue(70)
+    equal(state.suf.db.shield.scale, 70)
+    local ok = profile:Import(line)
+    equal(ok, true)
+    equal(state.suf.db.shield.scale, 130, "imported back")
+    equal(state.suf.db.shield.iconScale, 60)
+    equal(state.ring().scale, 1.3)
+    local bad, why = profile:Import(line:sub(1, -3) .. "00")
+    equal(bad, nil)
+    equal(type(why), "string")
+    equal(state.suf.db.shield.scale, 130, "a damaged line changes nothing")
+    state.combat = true
+    local refused = profile:CopyFrom(state.toolkit.PROFILE_DEFAULTS)
+    equal(refused, nil)
+    equal(state.suf.db.shield.scale, 130, "never in combat")
+end)
+test("a profile part that is not a settings table changes nothing", function()
+    local state = fixture({class = "MAGE", db = {shield = {scale = 130}}})
+    local line = state.toolkitNS.SerializeSettings("profile", {DyresShieldsUp = "not a table"})
+    local ok = state.toolkitNS.profile:Import(line)
+    equal(ok, nil)
+    equal(state.suf.db.shield.scale, 130)
+    local fine = state.toolkitNS.profile:Apply({DyresShieldsUp = {shield = {scale = 999, enabled = "yes"}}})
+    equal(fine, true, "damaged values are repaired, not refused")
+    equal(state.suf.db.shield.scale, 150)
+    equal(state.suf.db.shield.enabled, true)
 end)
 
 -- Settings from Mage Tools Forever and Warlock Tools Forever -------------------------

@@ -170,6 +170,25 @@ Forever.
   when that checkout is there, else the copy in tests/toolkit (as in CI); no
   test compares the two, and a test checks that the toolkit it loads offers
   contract 2 and the functions DSU calls.
+- Dyre's Toolkit Profile (Toolkit 2.10.0; John, 2026-11-15/17: one profile
+  per character, owned by the Toolkit, with "every setting for every Dyre
+  addon"): `JoinProfile` in Core calls `RegisterProfilePart` at
+  PLAYER_LOGIN, after the settings copy from MTF or WTF and before the ring
+  is built, only when the Toolkit has it (older Toolkits: nothing changes;
+  the minimum Toolkit stays contract 2). The part is `DyresShieldsUpDB`;
+  `sanitize` is `DSU.SanitizeDB` (repairs any table, `{}` gives the
+  defaults). Key audit:
+  - `shield` (in the profile): every setting (enabled, number, breakSound,
+    breakSoundKey, scale, textScale, iconScale) and the ring's `position`.
+    `shield.locked` goes along but means nothing there: `refresh` sets it
+    from the Toolkit's lock.
+  - `migratedFrom` (a `characterKeys` entry, stays per character): the
+    record of this character's one-time copy from MTF or WTF, not a setting.
+  `refresh` is `DSU.ApplyProfile`: the lock from the Toolkit,
+  `ReapplyWidgets` for the ring's place and sizes (the engine writes the
+  table in place, so the widget's store is the same table), then
+  `RefreshShield` (the number, the text and icon sizes, the colors, and the
+  break sound). Live, no reload. No account table is registered.
 - Settings from MTF and WTF (author-approved, 1.2.0, the first step of DSU
   drawing the shield for everyone): `DSU.CopyShieldSettings` at PLAYER_LOGIN,
   before the display starts, only when `DyresShieldsUpDB` was nil at load

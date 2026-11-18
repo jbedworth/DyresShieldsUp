@@ -222,6 +222,39 @@ local function ResetRing()
     DSU.shieldWidget:ResetPosition()
 end
 
+-- Dyre's Toolkit Profile (Toolkit 2.10.0, John: one profile per character
+-- that holds "every setting for every Dyre addon"): DSU's part is
+-- DyresShieldsUpDB, whose shield table holds every setting, the ring's place,
+-- and its sizes. migratedFrom stays per character: it records this
+-- character's one-time copy from MTF or WTF, not a setting.
+local PROFILE_CHARACTER_KEYS = {"migratedFrom"}
+
+-- A copy or import was written into DyresShieldsUpDB in place: the lock is
+-- the toolkit's, the ring's place and sizes come back through the toolkit,
+-- and the display and its sound read the settings again.
+function DSU.ApplyProfile()
+    DSU.db.shield.locked = DSU.toolkit.IsLocked()
+    if DSU.shieldWidget and type(DSU.toolkit.ReapplyWidgets) == "function" then
+        DSU.toolkit.ReapplyWidgets(addonName)
+    end
+    DSU.RefreshShield()
+end
+
+-- With a toolkit older than 2.10.0 nothing changes.
+local function JoinProfile(toolkit)
+    if type(toolkit.RegisterProfilePart) ~= "function" then
+        return
+    end
+    toolkit.RegisterProfilePart({
+        addon = addonName,
+        title = Metadata("Title") or DEFAULT_TITLE,
+        current = function() return DSU.db end,
+        sanitize = function(settings) return DSU.SanitizeDB(settings) end,
+        characterKeys = PROFILE_CHARACTER_KEYS,
+        refresh = DSU.ApplyProfile,
+    })
+end
+
 function DSU.Unlock()
     DSU.SetLocked(false)
 end
@@ -294,6 +327,9 @@ events:SetScript("OnEvent", function(self, event, loadedName)
         return
     end
     DSU.toolkit = toolkit
+    -- After the settings copy from MTF or WTF and before the ring is built, so
+    -- a profile part copied or imported while DSU was not loaded is written first.
+    JoinProfile(toolkit)
     -- The toolkit's frames start locked at login; DSU's follow.
     DSU.db.shield.locked = toolkit.IsLocked()
     -- Any class: the display shows every absorb on you, and its icon row

@@ -141,6 +141,14 @@ carry over:
       client, drains with the shield's time and shows no number) and goes the
       moment the shield breaks, also in combat; `/dsu debug_shield` says
       `engine=lua`; no BugSack errors.
+- [ ] Profile (Toolkit 2.10.0 or newer): on character A, set a size, the
+      number off, and a sound, and move the display. On character B, on the
+      Toolkit's settings page, copy A's profile: B's display moves and resizes
+      at once, the number and sound follow, with no reload popup and no
+      BugSack error; DSU's page shows A's values. Copy Defaults: everything
+      goes back to 100%, the default place, and the default sound. Export,
+      change a size, import the line: the size comes back. In combat, a copy
+      is refused.
 - [ ] With Dyre's Toolkit disabled (or older than 2.0), DSU stays off and
       says once to install it from CurseForge.
 - [ ] With an MTF or WTF that ships Shield.lua v10 on a Mage or Warlock

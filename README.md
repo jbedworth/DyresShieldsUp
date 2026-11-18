@@ -63,6 +63,11 @@ install it from CurseForge.
   on, it snaps to the grid.
 - DSU's settings page sits under **Dyre's AddOns**, and DSU is listed under
   Dyre's Toolkit in the in-game AddOn list.
+- With Dyre's Toolkit 2.10.0 or newer, DSU's settings, the display's place
+  and sizes, and its sound are part of your **Dyre's Toolkit profile**: on
+  the Toolkit's settings page, copy them from another character (or the
+  Defaults), or export and import them as one line of text, with the rest of
+  your Dyre's AddOns. A copy applies at once, with no reload.
 
 ## With Mage Tools Forever or Warlock Tools Forever
 
