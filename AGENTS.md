@@ -214,7 +214,10 @@ Forever.
   - Data: `DSU.PROCS`, moved from MTF's and WTF's unreleased proc code, keys
     unchanged (Dyre's Buff Reminders' `PROC_SOUNDS` matches on them):
     `missilebarrage` (talents 400588, 1326083; buff 400589, spare 44401; a
-    macro in its tooltip, `DSU.MISSILE_BARRAGE_MACRO`, with `/use`),
+    macro in its tooltip, `DSU.MISSILE_BARRAGE_MACRO`, with `/use`; 1.4.1:
+    the client's name for Arcane Missiles, `C_Spell.GetSpellName(5143)`, set
+    at PLAYER_LOGIN by `DSU.LocalizeProcTooltips`, English when missing or
+    secret; spell names in macro text are never English-only),
     `fingersoffrost` (talent 400647; buff 400670, spare 44544; `stacks = 2`),
     `nightfall` (talents 18094, 18095; Shadow Trance 17941; sound impspell),
     `decimation` (talent 440870; no buff ID known); Clearcasting (John,

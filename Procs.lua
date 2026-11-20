@@ -43,7 +43,32 @@ local addonName, DSU = ...
 -- only after the engine has read the ID once out of combat.
 -- No ID is confirmed in client: the engine uses a candidate only when the
 -- client names it the buff, and learns the real ID out of combat.
-DSU.MISSILE_BARRAGE_MACRO = "/stopcasting\n/use Arcane Missiles"
+-- The macro names Arcane Missiles in the client's language (1.4.1: an English
+-- macro does nothing on a French client). DSU.LocalizeProcTooltips builds it
+-- at PLAYER_LOGIN, when the client's spell names are known. 5143 is Arcane
+-- Missiles rank 1; /use by name casts the highest rank. English when the
+-- client gives no plain name (missing or secret).
+DSU.ARCANE_MISSILES_SPELL = 5143
+local ARCANE_MISSILES_ENGLISH = "Arcane Missiles"
+local MISSILE_BARRAGE_TOOLTIP = "\n\nA macro that catches it, also during a cast:\n"
+
+-- Whether a value is a secret (Midnight's opaque values): never compared or joined.
+local function IsSecret(value)
+    return type(issecretvalue) == "function" and issecretvalue(value) == true
+end
+
+-- The Missile Barrage macro, with the client's name for Arcane Missiles.
+function DSU.MissileBarrageMacro()
+    local name
+    if type(C_Spell) == "table" and type(C_Spell.GetSpellName) == "function" then
+        name = C_Spell.GetSpellName(DSU.ARCANE_MISSILES_SPELL)
+    end
+    if IsSecret(name) or type(name) ~= "string" or name == "" then
+        name = ARCANE_MISSILES_ENGLISH
+    end
+    return "/stopcasting\n/use " .. name
+end
+DSU.MISSILE_BARRAGE_MACRO = "/stopcasting\n/use " .. ARCANE_MISSILES_ENGLISH
 -- One art for every proc for now (per-family art comes later): white
 -- lightning the Toolkit tints with each proc's color, made by
 -- scripts/make_arcane_arcs.py to the Toolkit's geometry (its Procs.lua, "Art").
@@ -55,7 +80,7 @@ DSU.PROC_ART = {
 DSU.PROCS = {
     {key = "missilebarrage", label = "Missile Barrage", buff = "Missile Barrage", class = "MAGE",
         talents = {400588, 1326083}, ids = {400589, 44401}, color = {0.62, 0.8, 1}, sound = "alertselect",
-        tooltip = "\n\nA macro that catches it, also during a cast:\n" .. DSU.MISSILE_BARRAGE_MACRO},
+        tooltip = MISSILE_BARRAGE_TOOLTIP .. DSU.MISSILE_BARRAGE_MACRO},
     {key = "fingersoffrost", label = "Fingers of Frost", buff = "Fingers of Frost", class = "MAGE",
         talents = {400647}, ids = {400670, 44544}, color = {0.7, 0.95, 1}, sound = "frostyicespell1",
         stacks = 2,
@@ -153,11 +178,23 @@ function DSU.SanitizeProcSettings(db)
     db.procsWithSAO = db.procsWithSAO == true
 end
 
+-- Puts the client's spell names in the catalog's macro text, before the
+-- Toolkit builds the settings rows from it.
+function DSU.LocalizeProcTooltips()
+    DSU.MISSILE_BARRAGE_MACRO = DSU.MissileBarrageMacro()
+    for _, proc in ipairs(DSU.PROCS) do
+        if proc.key == "missilebarrage" then
+            proc.tooltip = MISSILE_BARRAGE_TOOLTIP .. DSU.MISSILE_BARRAGE_MACRO
+        end
+    end
+end
+
 -- Once, at PLAYER_LOGIN, after the settings load: hands the catalog to the
 -- Toolkit's engine. A class without procs, a step aside, or an older Toolkit
 -- gets no handle (and the shields work as before); the last two say so once.
 function DSU.InitializeProcs()
     DSU.procs = nil
+    DSU.LocalizeProcTooltips()
     if not ClassHasProcs() then
         return
     end

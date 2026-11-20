@@ -4,6 +4,12 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.4.1
+
+### Fixes
+
+- The Missile Barrage tooltip's macro now names Arcane Missiles in your game's language, so the macro works when you copy it on a non-English client.
+
 ## 1.4.0
 
 ### Features

@@ -630,7 +630,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.4.0 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.4.1 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
@@ -1748,6 +1748,38 @@ test("procs: DSU passes its own art, in its own folder, and the files are there"
         equal(handle ~= nil, true, file)
         if handle then handle:close() end
     end
+end)
+test("procs: the Missile Barrage macro names Arcane Missiles in the client's language", function()
+    local function macroFor(name)
+        SPELLS[5143] = name
+        local state = fixture({class = "MAGE", known = {[MISSILE_BARRAGE_TALENT] = true}})
+        SPELLS[5143] = nil
+        local barrage
+        for _, proc in ipairs(state.suf.PROCS) do
+            if proc.key == "missilebarrage" then barrage = proc end
+        end
+        return state, barrage.tooltip
+    end
+    local state, tooltip = macroFor("Projectiles des arcanes")
+    contains(tooltip, "/stopcasting\n/use Projectiles des arcanes", "the client's name")
+    equal(tooltip:find("Arcane Missiles", 1, true), nil, "no English name")
+    equal(state.suf.MISSILE_BARRAGE_MACRO, "/stopcasting\n/use Projectiles des arcanes")
+    if TOOLKIT_HAS_PROCS then
+        contains(rowFor(state, PROC_PREFIX .. "MISSILEBARRAGE_ARC").tooltip, "/use Projectiles des arcanes",
+            "the settings row shows it")
+    end
+    -- English when the client gives no plain name.
+    local _, missing = macroFor(nil)
+    contains(missing, "/stopcasting\n/use Arcane Missiles", "no name")
+    local _, empty = macroFor("")
+    contains(empty, "/stopcasting\n/use Arcane Missiles", "an empty name")
+    -- A secret name is never compared or joined.
+    local hidden = secret()
+    state.secrets[hidden] = true
+    SPELLS[5143] = hidden
+    local macro = state.suf.MissileBarrageMacro()
+    SPELLS[5143] = nil
+    equal(macro, "/stopcasting\n/use Arcane Missiles", "a secret name")
 end)
 test("procs: an older Toolkit gets one chat line, no proc rows, and the shields work", function()
     local db = {procs = {arc = {missilebarrage = false}}, procIDs = {missilebarrage = MISSILE_BARRAGE_BUFF}}

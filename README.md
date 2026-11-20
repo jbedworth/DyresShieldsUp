@@ -63,6 +63,9 @@ Toolkit (2.11 or later) draws them; Dyre's Shields Up holds the list of procs.
   /use Arcane Missiles
   ```
 
+  The tooltip in the game shows the macro with your client's name for
+  Arcane Missiles.
+
   DSU never makes macros for you.
 - **Warlock:** **Nightfall** (Shadow Trance: your next Shadow Bolt is
   instant) and **Decimation** (Soul Fire casts faster and costs no Soul
