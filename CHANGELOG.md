@@ -4,6 +4,19 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.4.0
+
+### Features
+
+- **Proc overlays.** Dyre's Shields Up now shows an arc on each side of your character, and plays a sound, the moment a proc you have a talent for appears, also in combat. The arcs drain with the proc's time left and go the moment you use it. To start: **Missile Barrage** and **Fingers of Frost** (Mage; with two Fingers of Frost charges both arcs show, and the right one goes when you use one) **Nightfall** and **Decimation** (Warlock), **Clearcasting** (Druid, from Omen of Clarity; Shaman, from Elemental Focus; their sound starts off, since the game already gives a cue), and **Overpower** and **Revenge** (Warrior: the arcs show while you can use the ability, dimmed while you lack the rage; Dyre's Buff Reminders plays their sound). Each proc has its own switches for the arcs and the sound, and its own sound. Only a character who has the talent sees its settings. Unlock to move the arcs, and **Proc arc size** sizes them. This needs Dyre's Toolkit 2.11 or newer; with an older Toolkit, the shields work as before and DSU says once what to update.
+- **SpellActivationOverlay:** with that AddOn loaded, Dyre's proc overlays stay off, so you don't get two of each, and DSU says so once in chat. To show both, turn on **Show Dyre's proc overlays with SpellActivationOverlay** (it applies after a `/reload`).
+- `/dsu debug_procs` shows one line per proc: whether you know its talent, its buff IDs, the arcs, and the sound.
+
+### Other changes
+
+- The proc arcs, sounds, and settings in Mage Tools Forever's and Warlock Tools Forever's test builds now live in Dyre's Shields Up, with the same settings. Dyre's Buff Reminders' Proc Chimes step aside for a proc Dyre's Shields Up plays, so a proc makes one sound.
+- Dyre's Toolkit is now an optional dependency in the TOC, as for every Dyre's AddOn: without it, Dyre's Shields Up still loads and says once to install it.
+
 ## 1.3.0
 
 ### Features

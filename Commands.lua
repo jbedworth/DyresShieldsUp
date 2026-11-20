@@ -1,6 +1,7 @@
 local _, DSU = ...
 
-local USAGE = "Use /dsu, /dsu options, /dsu unlock, /dsu lock, /dsu reset, or /dsu debug_shield."
+local USAGE = "Use /dsu, /dsu options, /dsu unlock, /dsu lock, /dsu reset, /dsu debug_shield, or "
+    .. "/dsu debug_procs."
 local UNAVAILABLE = "Dyre's Shields Up is unavailable. Check the DSU login message."
 
 -- Each command is one word; "" opens the settings. Handlers live in Core and
@@ -12,6 +13,7 @@ local COMMANDS = {
     lock = {handler = "Lock"},
     reset = {handler = "ResetPosition"},
     debug_shield = {handler = "ReportShieldDebug", always = true},
+    debug_procs = {handler = "ReportProcsDebug"},
 }
 
 function DSU.ParseCommand(message)

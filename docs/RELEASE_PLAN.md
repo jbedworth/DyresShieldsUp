@@ -37,12 +37,16 @@ DyresShieldsUp/
     DyresShieldsUp.toc
     Commands.lua
     Core.lua
+    AuraEngine.lua
     Shield.lua
+    Procs.lua
     Options.lua
     LICENSE
     Textures/ShieldArc.tga
     Textures/ShieldArcInner.tga
     Textures/ShieldArcInnermost.tga
+    Textures/ArcaneArc.tga
+    Textures/ArcaneArcLeft.tga
 ```
 
 The validator permits one optional empty root directory entry. Additional files
@@ -52,9 +56,16 @@ agent guidance, generated logs, and all credentials/player data.
 
 Use an explicit file allowlist. Do not ZIP the checkout and maintain a growing
 list of exclusions. Keep `LICENSE` in the package, but do not load it in the TOC.
-DSU ships three textures, `Textures/ShieldArc.tga`, `ShieldArcInner.tga`, and
-`ShieldArcInnermost.tga`, the shield display's crescents, built by `scripts/build_arc.py`. The builder
+DSU ships five textures: `Textures/ShieldArc.tga`, `ShieldArcInner.tga`, and
+`ShieldArcInnermost.tga`, the shield display's crescents, built by `scripts/build_arc.py`; and
+`ArcaneArc.tga` and `ArcaneArcLeft.tga`, the proc overlays' arcs, made by
+`scripts/make_arcane_arcs.py` (it needs headless Chrome or Edge). The builder
 requires each to be an uncompressed 32-bit square TGA with power-of-two sides.
+
+The proc overlays need Dyre's Toolkit 2.11.0. Release DSU at least 24 hours
+after that Toolkit, and only with a clean fallback on an older Toolkit (one
+chat line, no proc rows, the shields as before), which the suite tests with
+the vendored Toolkit copy.
 
 Validate the actual archive, not only the staging folder:
 

@@ -20,12 +20,13 @@ from pathlib import Path
 
 
 ADDON = "DyresShieldsUp"
-RUNTIME_FILES = ("Commands.lua", "Core.lua", "AuraEngine.lua", "Shield.lua", "Options.lua")
+RUNTIME_FILES = ("Commands.lua", "Core.lua", "AuraEngine.lua", "Shield.lua", "Procs.lua", "Options.lua")
 TEXT_FILES = (ADDON + ".toc",) + RUNTIME_FILES + ("LICENSE",)
 # Runtime textures shipped in the package: the shield display's crescents,
 # built by scripts/build_arc.py. The builder requires uncompressed 32-bit,
 # square, power-of-two TGAs.
-MEDIA_FILES = ("Textures/ShieldArc.tga", "Textures/ShieldArcInner.tga", "Textures/ShieldArcInnermost.tga")
+MEDIA_FILES = ("Textures/ShieldArc.tga", "Textures/ShieldArcInner.tga", "Textures/ShieldArcInnermost.tga",
+               "Textures/ArcaneArc.tga", "Textures/ArcaneArcLeft.tga")
 PACKAGE_FILES = TEXT_FILES + MEDIA_FILES
 TGA_HEADER_SIZE = 18
 TGA_TRUECOLOR = 2

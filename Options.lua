@@ -74,6 +74,34 @@ local function GreyUnlessOwner(initializer, display)
     return initializer
 end
 
+-- The proc overlays (Dyre's Toolkit's proc engine draws the rows: a "Procs"
+-- header, then per proc its arc and sound switches and its sound, each shown
+-- only while the talent is known, then the arcs' size). With
+-- SpellActivationOverlay loaded, a switch to show DSU's overlays as well,
+-- whether or not DSU stepped aside at login; it applies after a /reload,
+-- since stepping aside means DSU registered nothing at login.
+local function AddProcs(layout)
+    if DSU.procs and type(DSU.toolkit.AddProcSettings) == "function" then
+        DSU.toolkit.AddProcSettings(category, layout, DSU.procs, {header = "Procs"})
+    end
+    if not DSU.SpellActivationOverlayLoaded() or not (DSU.procs or DSU.procsSteppedAside) then
+        return
+    end
+    local setting = Proxy("DSU_PROCS_WITH_SAO", Settings.VarType.Boolean,
+        "Show Dyre's proc overlays with SpellActivationOverlay", false,
+        function() return DSU.db.procsWithSAO end,
+        function(value)
+            local wanted = value == true
+            if wanted ~= DSU.db.procsWithSAO then
+                DSU.db.procsWithSAO = wanted
+                DSU.Report("Your proc overlay choice applies after a /reload.")
+            end
+        end)
+    Settings.CreateCheckbox(category, setting,
+        "SpellActivationOverlay is loaded, so Dyre's proc arcs and sounds stay off by default. Tick this to "
+            .. "show both. It applies after a /reload.")
+end
+
 function DSU.InitializeOptions()
     if not HasSettingsAPI() then
         return
@@ -133,6 +161,7 @@ function DSU.InitializeOptions()
             SliderOptions(display.SCALE_MIN, display.SCALE_MAX, display.SCALE_STEP),
             "How big the shield display is, in percent." .. note), display)
     end
+    AddProcs(layout)
     -- A page under the toolkit's home is registered with it, and the toolkit's
     -- "Unlock frames" switch there unlocks every Dyre's AddOn (author-approved:
     -- no unlock switch of DSU's own then).

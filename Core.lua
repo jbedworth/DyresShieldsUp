@@ -68,7 +68,8 @@ end
 -- Functions other runtime files must define. A mixed install of old and new
 -- files otherwise fails silently, because the client hides Lua errors by default.
 local REQUIRED_NAMESPACE = {"ParseCommand", "HandleCommand", "InitializeOptions", "OpenSettings",
-    "CreateAuraContainer", "AuraEngineKind"}
+    "CreateAuraContainer", "AuraEngineKind", "InitializeProcs", "SanitizeProcSettings", "ApplyProcs",
+    "ResetProcPosition", "ReportProcsDebug"}
 local REQUIRED_SHIELD = {"Initialize", "Sanitize", "Refresh", "ApplyBreakSound", "PreviewBreakSound",
     "SanitizeBreakSound", "SoundChoices", "SetupSoundMenu", "ResetPosition", "ReportDebug", "IsOwner",
     "OwnerAddOn"}
@@ -100,6 +101,10 @@ function DSU.SanitizeDB(db)
     end
     if type(db.migratedFrom) ~= "string" then
         db.migratedFrom = nil
+    end
+    -- Procs.lua's proc overlays; missing in a mixed install, which login reports.
+    if type(DSU.SanitizeProcSettings) == "function" then
+        DSU.SanitizeProcSettings(db)
     end
     return db
 end
@@ -226,18 +231,22 @@ end
 -- that holds "every setting for every Dyre addon"): DSU's part is
 -- DyresShieldsUpDB, whose shield table holds every setting, the ring's place,
 -- and its sizes. migratedFrom stays per character: it records this
--- character's one-time copy from MTF or WTF, not a setting.
-local PROFILE_CHARACTER_KEYS = {"migratedFrom"}
+-- character's one-time copy from MTF or WTF, not a setting. The proc
+-- overlays' settings (procs, procsWithSAO) are in the profile; procIDs, the
+-- proc buff IDs read in client, is data the character found, not a setting.
+local PROFILE_CHARACTER_KEYS = {"migratedFrom", "procIDs"}
 
 -- A copy or import was written into DyresShieldsUpDB in place: the lock is
 -- the toolkit's, the ring's place and sizes come back through the toolkit,
--- and the display and its sound read the settings again.
+-- and the display and its sound read the settings again; then the proc
+-- overlays (the engine's widget is one of DSU's widgets).
 function DSU.ApplyProfile()
     DSU.db.shield.locked = DSU.toolkit.IsLocked()
-    if DSU.shieldWidget and type(DSU.toolkit.ReapplyWidgets) == "function" then
+    if type(DSU.toolkit.ReapplyWidgets) == "function" then
         DSU.toolkit.ReapplyWidgets(addonName)
     end
     DSU.RefreshShield()
+    DSU.ApplyProcs()
 end
 
 -- With a toolkit older than 2.10.0 nothing changes.
@@ -268,6 +277,9 @@ function DSU.ResetPosition()
     DSU.ShieldDisplay.ResetPosition()
     if not DSU.ShownElsewhere() then
         DSU.Report("Shield display moved back to its default place.")
+    end
+    if DSU.ResetProcPosition() then
+        DSU.Report("Proc arcs moved back to their default place.")
     end
 end
 
@@ -338,6 +350,9 @@ events:SetScript("OnEvent", function(self, event, loadedName)
     -- startup never depends on event handler order.
     DSU.ShieldDisplay.Initialize({settings = function() return DSU.db.shield end, report = DSU.Report,
         layout = {adopt = AdoptRing, resetPosition = ResetRing}})
+    -- After the shields (which never depend on it), before the settings page,
+    -- which lists the procs.
+    DSU.InitializeProcs()
     DSU.InitializeOptions()
     toolkit.RegisterAddOn({addon = addonName, title = Metadata("Title") or DEFAULT_TITLE,
         openSettings = DSU.OpenSettings})

@@ -25,7 +25,7 @@ local function contains(actual, fragment, context)
 end
 
 local ADDON = "DyresShieldsUp"
-local RUNTIME_FILES = {"Commands.lua", "Core.lua", "AuraEngine.lua", "Shield.lua", "Options.lua"}
+local RUNTIME_FILES = {"Commands.lua", "Core.lua", "AuraEngine.lua", "Shield.lua", "Procs.lua", "Options.lua"}
 -- Dyre's Toolkit's runtime files, without the minimap (it needs the embedded
 -- libraries): the real toolkit from ../DyresToolkit when that checkout is
 -- there, else the copy in tests/toolkit (as in CI, which has only this repo).
@@ -39,13 +39,34 @@ local function ToolkitFolder()
     return "tests/toolkit/"
 end
 local TOOLKIT_FOLDER = ToolkitFolder()
+-- The proc engine (Toolkit 2.11.0) and the files it uses, only where that copy
+-- has it: the vendored copy (2.10.2) has none, so CI runs DSU's fallback for
+-- an older Toolkit.
+local TOOLKIT_HAS_PROCS = false
+do
+    local probe = io.open(TOOLKIT_FOLDER .. "Procs.lua", "rb")
+    if probe then
+        probe:close()
+        TOOLKIT_HAS_PROCS = true
+        for _, path in ipairs({"Auras.lua", "Units.lua", "Procs.lua", "Owners.lua"}) do
+            TOOLKIT_FILES[#TOOLKIT_FILES + 1] = path
+        end
+    end
+end
+print("Dyre's Toolkit from " .. TOOLKIT_FOLDER .. (TOOLKIT_HAS_PROCS and " (with the proc engine)"
+    or " (no proc engine)"))
 local WIDGET_SCALE = "DYRE_DYRESSHIELDSUP_SHIELD_SCALE"
 local PAGE = "Shields Up"
 local SPELLS = {
     [11426] = "Ice Barrier", [13031] = "Ice Barrier", [1463] = "Mana Shield", [543] = "Fire Ward",
     [6143] = "Frost Ward", [17] = "Power Word: Shield", [592] = "Power Word: Shield", [6229] = "Shadow Ward",
     [7812] = "Sacrifice", [642] = "Divine Shield", [498] = "Divine Protection",
-    [1022] = "Blessing of Protection", [585] = "Smite", [25217] = "Power Word: Shield"}
+    [1022] = "Blessing of Protection", [585] = "Smite", [25217] = "Power Word: Shield",
+    -- Proc buffs and talents (Procs.lua's catalog); a talent's passive aura
+    -- carries the buff's name.
+    [400589] = "Missile Barrage", [400588] = "Missile Barrage", [1326083] = "Missile Barrage",
+    [400670] = "Fingers of Frost", [17941] = "Shadow Trance", [18094] = "Nightfall",
+    [7384] = "Overpower", [6572] = "Revenge"}
 local POWER_WORD_SHIELD, ICE_BARRIER, SMITE = 17, 11426, 585
 
 -- A secret stands in for the client's opaque combat values; tests mark them with
@@ -95,10 +116,19 @@ local function fixture(options)
     env.UnitName = function(unit) if unit == "player" then return "Samara" end end
     env.GetRealmName = function() return "Forever" end
     env.InCombatLockdown = function() return state.combat end
+    -- Talents this character knows: options.known, a set of spell IDs.
+    state.known = options.known or {}
+    env.IsPlayerSpell = function(id) return state.known[id] == true end
     env.issecretvalue = function(value) return state.secrets[value] == true end
     env.C_Spell = {
         GetSpellName = function(id) if SPELLS[id] then return SPELLS[id] end end,
         GetSpellTexture = function(id) return 2000 + id end,
+        -- By name: state.usable[name] = {usable, noPower} (both may be secret).
+        IsSpellUsable = function(name)
+            local answer = state.usable and state.usable[name]
+            if answer then return answer[1], answer[2] end
+            return false, false
+        end,
     }
     state.timers = {}
     env.C_Timer = {After = function(seconds, callback)
@@ -118,6 +148,8 @@ local function fixture(options)
             return {}
         end
     end}
+    -- options.loaded: other AddOns loaded by login (SpellActivationOverlay).
+    state.loadedAddOns = options.loaded
     env.C_AddOns.IsAddOnLoaded = function(name) return state.loadedAddOns and state.loadedAddOns[name] end
     env.C_AddOns.LoadAddOn = function(name)
         state.loadedAddOns = state.loadedAddOns or {}
@@ -256,8 +288,19 @@ local function fixture(options)
             function object:AddModifyPredicate(predicate)
                 self.modifyPredicates[#self.modifyPredicates + 1] = predicate
             end
+            object.shownPredicates = {}
+            function object:AddShownPredicate(predicate)
+                self.shownPredicates[#self.shownPredicates + 1] = predicate
+            end
             category.initializers[#category.initializers + 1] = object
             return object
+        end
+        env.CreateSettingsListSectionHeaderInitializer = function(name)
+            local header = {header = name, shownPredicates = {}}
+            function header:AddShownPredicate(predicate)
+                self.shownPredicates[#self.shownPredicates + 1] = predicate
+            end
+            return header
         end
         env.MinimalSliderWithSteppersMixin = {Label = {Right = "right"}}
         env.Settings = {
@@ -448,6 +491,11 @@ local function fixture(options)
     -- leaves it out; options.oldToolkit offers contract 1 only.
     if not options.noToolkit then
         state.toolkitNS = {InitializeMinimap = function() end}
+        -- HealthBars.lua's InFamily (that file is not loaded here), which
+        -- Owners.lua uses: a Dyre's AddOn has `## Group: DyresToolkit`.
+        function state.toolkitNS.InFamily(addon)
+            return env.C_AddOns.GetAddOnMetadata(addon, "Group") == "DyresToolkit"
+        end
         -- Toolkit 2.2.1 snaps to the grid by default; these tests drop frames without it.
         env.DyresToolkitDB = env.DyresToolkitDB or {snapToGrid = false}
         for _, path in ipairs(TOOLKIT_FILES) do
@@ -459,6 +507,20 @@ local function fixture(options)
         if options.noProfiles then
             -- A toolkit from before 2.10.0.
             env.DyresToolkit.RegisterProfilePart, env.DyresToolkit.ReapplyWidgets = nil, nil
+        end
+        -- options.noProcs: a Toolkit older than 2.11.0 (no proc engine).
+        if options.noProcs then
+            for _, name in ipairs({"RegisterProcs", "SanitizeProcs", "SanitizeProcIDs", "AddProcSettings"}) do
+                env.DyresToolkit[name] = nil
+            end
+        end
+        -- options.spyProcs: keep the spec DSU passes to RegisterProcs.
+        if options.spyProcs and env.DyresToolkit.RegisterProcs then
+            local register = env.DyresToolkit.RegisterProcs
+            env.DyresToolkit.RegisterProcs = function(spec)
+                state.procSpec = spec
+                return register(spec)
+            end
         end
         if options.oldToolkit then
             local require = env.DyresToolkit.RequireContract
@@ -527,6 +589,12 @@ local function fixture(options)
     state.env = env
     state.emit("ADDON_LOADED", "DyresToolkit")
     state.emit("ADDON_LOADED", ADDON)
+    -- options.loadLate: AddOns that load after DSU and before login.
+    for name in pairs(options.loadLate or {}) do
+        state.loadedAddOns = state.loadedAddOns or {}
+        state.loadedAddOns[name] = true
+        state.emit("ADDON_LOADED", name)
+    end
     state.emit("PLAYER_LOGIN")
 
     function state.slash(text) env.SlashCmdList.DYRESSHIELDSUP(text) end
@@ -562,15 +630,17 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.3.0 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.4.0 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
 end)
-test("the TOC requires the toolkit and nests under it in the AddOn list", function()
+test("the TOC loads the toolkit first and nests under it in the AddOn list", function()
     local state = fixture()
-    equal(state.toc.Dependencies, "DyresToolkit", "the toolkit places and sizes the ring")
-    equal(state.toc.OptionalDeps, "DyresSounds")
+    -- The family rule (Dyre's Toolkit AGENTS.md, "The family"): never
+    -- Dependencies, so DSU still loads and says what to install.
+    equal(state.toc.Dependencies, nil)
+    equal(state.toc.OptionalDeps, "DyresToolkit, DyresSounds", "the toolkit places and sizes the ring")
     equal(state.toc.Group, "DyresToolkit")
 end)
 test("every class runs it", function()
@@ -1447,7 +1517,9 @@ test("a v9-style host keeps its toolkit drag and save, and a size change keeps t
     equal(copy.ShieldDisplay.IsOwner(), true, "the first registered wins a tie")
     local ring = copy.ShieldDisplay.frame
     equal(ring.dyre, nil, "not a widget")
-    equal(#state.toolkit.Widgets("DyresShieldsUp"), 0, "DSU adopts nothing it does not draw")
+    for _, widget in ipairs(state.toolkit.Widgets("DyresShieldsUp")) do
+        equal(widget.dyre.widgetKey ~= "shield", true, "DSU adopts no ring it does not draw")
+    end
     copy.settings.position = {point = "CENTER", relativePoint = "CENTER", x = 100, y = 50}
     copy.ShieldDisplay.ResetPosition()
     copy.settings.position = {point = "CENTER", relativePoint = "CENTER", x = 100, y = 50}
@@ -1529,8 +1601,13 @@ test("with Mage Tools Forever running too, only one ring shows, and DSU says whe
     contains(state.last(), "shown by MageToolsForever")
     local page = state.categories[PAGE]
     for _, initializer in ipairs(page.initializers) do
-        equal(initializer.modifyPredicates[1](), false, initializer.setting.variable .. " is greyed out")
-        contains(initializer.tooltip, "Mage Tools Forever draws the shield display, so use its settings for it.")
+        if initializer.setting.variable:find("^DYRE_DYRESSHIELDSUP_PROC") then
+            -- The proc overlays are DSU's own, wherever the ring is drawn.
+            equal(initializer.modifyPredicates[1], nil, initializer.setting.variable .. " is not greyed out")
+        else
+            equal(initializer.modifyPredicates[1](), false, initializer.setting.variable .. " is greyed out")
+            contains(initializer.tooltip, "Mage Tools Forever draws the shield display, so use its settings for it.")
+        end
     end
     local alone = fixture()
     for _, initializer in ipairs(alone.categories[PAGE].initializers) do
@@ -1548,6 +1625,366 @@ test("a newer copy elsewhere takes over; DSU takes over from an older one", func
     equal(older.ring() ~= nil, true)
     contains(older.copies.WarlockToolsForever.said[1], "shown by DyresShieldsUp")
 end)
+
+-- Proc overlays (Phase 0: the catalog moved here from MTF and WTF) ------------------
+
+local MISSILE_BARRAGE_TALENT, MISSILE_BARRAGE_BUFF = 400588, 400589
+local NIGHTFALL_TALENT, SHADOW_TRANCE = 18094, 17941
+local PROCS_LINE = "DSU: Proc overlays need Dyre's Toolkit 2.11 or later: update it from CurseForge."
+local SAO_LINE = "DSU: SpellActivationOverlay is loaded, so Dyre's proc overlays stay off."
+local PROC_PREFIX = "DYRE_DYRESSHIELDSUP_PROC_"
+local SAO = {SpellActivationOverlay = true}
+
+local function saidCount(state, line)
+    local count = 0
+    for _, message in ipairs(state.messages) do
+        if message:sub(1, #line) == line then count = count + 1 end
+    end
+    return count
+end
+local function procRows(state)
+    local found = {}
+    for variable in pairs(state.settings) do
+        if variable:find(PROC_PREFIX, 1, true) then found[#found + 1] = variable end
+    end
+    return found
+end
+local function rowFor(state, variable)
+    for _, row in ipairs(state.categories[PAGE].initializers) do
+        if row.setting and row.setting.variable == variable then return row end
+    end
+end
+local function rowShown(row)
+    for _, predicate in ipairs(row.shownPredicates or {}) do
+        if not predicate() then return false end
+    end
+    return true
+end
+local function soundIDs(state)
+    local ids = {}
+    for _, entry in pairs(state.auraSounds or {}) do ids[entry.info.spellID] = true end
+    return ids
+end
+local function byKey(list)
+    local found = {}
+    for _, proc in ipairs(list) do found[proc.key] = proc end
+    return found
+end
+
+test("procs: the catalog keeps MTF's and WTF's keys and data, and needs no client", function()
+    local state = fixture()
+    local procs = byKey(state.suf.PROCS)
+    equal(#state.suf.PROCS, 8)
+    -- The keys Dyre's Buff Reminders' Proc Chimes match on.
+    for _, key in ipairs({"missilebarrage", "fingersoffrost", "nightfall", "decimation", "druidclearcasting",
+            "shamanclearcasting", "overpower", "revenge"}) do
+        equal(procs[key] ~= nil, true, key)
+    end
+    local barrage = procs.missilebarrage
+    equal(barrage.class, "MAGE")
+    equal(barrage.buff, "Missile Barrage")
+    equal(table.concat(barrage.talents, ","), "400588,1326083", "1326083 is a talent, never a buff")
+    equal(table.concat(barrage.ids, ","), "400589,44401")
+    equal(barrage.sound, "alertselect")
+    contains(barrage.tooltip, "/stopcasting\n/use Arcane Missiles", "the macro, with /use")
+    local frost = procs.fingersoffrost
+    equal(table.concat(frost.talents, ","), "400647")
+    equal(table.concat(frost.ids, ","), "400670,44544")
+    equal(frost.stacks, 2, "the right arc shows only at two charges")
+    equal(frost.sound, "frostyicespell1")
+    local nightfall = procs.nightfall
+    equal(nightfall.class, "WARLOCK")
+    equal(nightfall.buff, "Shadow Trance")
+    equal(table.concat(nightfall.talents, ","), "18094,18095")
+    equal(table.concat(nightfall.ids, ","), "17941")
+    equal(nightfall.sound, "impspell", "its sound in WTF 1.2 and DBR")
+    local decimation = procs.decimation
+    equal(table.concat(decimation.talents, ","), "440870")
+    equal(#decimation.ids, 0, "no source gives its buff ID")
+    -- Clearcasting: DBR's buff IDs, the sound off by default (the game's cue).
+    local druid, shaman = procs.druidclearcasting, procs.shamanclearcasting
+    equal(druid.class, "DRUID")
+    equal(table.concat(druid.talents, ","), "16864", "Omen of Clarity")
+    equal(table.concat(druid.ids, ","), "16870")
+    equal(shaman.class, "SHAMAN")
+    equal(table.concat(shaman.talents, ","), "16164", "Elemental Focus")
+    equal(table.concat(shaman.ids, ","), "16246")
+    for _, proc in ipairs({druid, shaman}) do
+        equal(proc.buff, "Clearcasting", proc.key)
+        equal(proc.soundOn, false, proc.key .. ": the sound starts off")
+    end
+    -- Warrior: usable procs (no buff, no ids), the rank 1 IDs DBR uses.
+    equal(procs.overpower.usable, 7384)
+    equal(procs.revenge.usable, 6572)
+    for _, key in ipairs({"overpower", "revenge"}) do
+        equal(procs[key].class, "WARRIOR", key)
+        equal(procs[key].buff, nil, key .. ": not a buff")
+        equal(procs[key].sound, nil, key .. ": no sound (DBR plays it)")
+    end
+    for _, proc in ipairs(state.suf.PROCS) do
+        equal(proc.art, nil, proc.key .. ": the catalog's one art")
+        for _, talent in ipairs(proc.talents or {}) do
+            for _, id in ipairs(proc.ids) do
+                equal(id ~= talent, true, proc.key .. ": a talent is never a buff ID")
+            end
+        end
+    end
+end)
+test("procs: DSU passes its own art, in its own folder, and the files are there", function()
+    local state = fixture({class = "MAGE", spyProcs = true, known = {[MISSILE_BARRAGE_TALENT] = true}})
+    local art = state.suf.PROC_ART
+    equal(art.tint, true, "white, tinted with each proc's color")
+    equal(art.right, "Interface\\AddOns\\DyresShieldsUp\\Textures\\ArcaneArc")
+    equal(art.left, "Interface\\AddOns\\DyresShieldsUp\\Textures\\ArcaneArcLeft")
+    if TOOLKIT_HAS_PROCS then
+        equal(state.procSpec.art, art, "the spec's art, for every proc")
+        equal(state.procSpec.addon, "DyresShieldsUp")
+        equal(state.procSpec.procs, state.suf.PROCS)
+    end
+    -- The game cannot tell AddOn code a texture is missing, so check the files.
+    for _, path in ipairs({art.right, art.left}) do
+        local file = path:gsub("^Interface\\AddOns\\DyresShieldsUp\\", ""):gsub("\\", "/") .. ".tga"
+        local handle = io.open(file, "rb")
+        equal(handle ~= nil, true, file)
+        if handle then handle:close() end
+    end
+end)
+test("procs: an older Toolkit gets one chat line, no proc rows, and the shields work", function()
+    local db = {procs = {arc = {missilebarrage = false}}, procIDs = {missilebarrage = MISSILE_BARRAGE_BUFF}}
+    local state = fixture({class = "MAGE", noProcs = true, db = db, known = {[MISSILE_BARRAGE_TALENT] = true}})
+    equal(state.suf.available, true)
+    equal(state.suf.procs, nil, "no handle")
+    equal(saidCount(state, PROCS_LINE), 1, "said once")
+    equal(#procRows(state), 0, "no proc rows")
+    state.cast(ICE_BARRIER)
+    equal(state.ring().shown, true, "the shield display works")
+    -- The saved proc settings stay as they are for a Toolkit update.
+    equal(state.suf.db.procs.arc.missilebarrage, false)
+    equal(state.suf.db.procIDs.missilebarrage, MISSILE_BARRAGE_BUFF)
+    state.suf.ApplyProfile()
+    state.slash("debug_procs")
+    contains(state.last(), "Dyre's Toolkit 2.11 or later")
+end)
+test("procs: a class without procs gets no handle, rows, or line", function()
+    for _, class in ipairs({"PRIEST", "ROGUE", "PALADIN"}) do
+        local state = fixture({class = class, known = {[MISSILE_BARRAGE_TALENT] = true}})
+        equal(state.suf.procs, nil, class)
+        equal(#procRows(state), 0, class)
+        equal(saidCount(state, PROCS_LINE) + saidCount(state, SAO_LINE), 0, class)
+        state.slash("debug_procs")
+        contains(state.last(), "No proc overlays for your class yet.")
+    end
+end)
+test("procs: SpellActivationOverlay loaded makes DSU step aside, with one line, unless asked for both", function()
+    local state = fixture({class = "MAGE", loaded = SAO, noProcs = not TOOLKIT_HAS_PROCS,
+        known = {[MISSILE_BARRAGE_TALENT] = true}})
+    equal(state.suf.procs, nil, "nothing registered")
+    equal(saidCount(state, SAO_LINE), 1, "said once")
+    equal(saidCount(state, PROCS_LINE), 0, "stepping aside comes first")
+    equal(#procRows(state), 0, "no proc rows")
+    equal(soundIDs(state)[MISSILE_BARRAGE_BUFF], nil, "no proc sound")
+    if TOOLKIT_HAS_PROCS then
+        equal(state.toolkit.KindOwner("proc:missilebarrage"), nil, "no claim, so DBR's chimes keep their sounds")
+    end
+    local switch = state.settings.DSU_PROCS_WITH_SAO
+    equal(switch ~= nil, true, "the switch to show both")
+    equal(switch.default, false, "off by default")
+    equal(switch:GetValue(), false)
+    state.clear()
+    switch:SetValue(true)
+    equal(state.suf.db.procsWithSAO, true)
+    contains(state.last(), "applies after a /reload")
+    state.slash("debug_procs")
+    contains(state.last(), "SpellActivationOverlay is loaded")
+    -- Without SpellActivationOverlay there is no such switch, and no line.
+    local alone = fixture({class = "MAGE", known = {[MISSILE_BARRAGE_TALENT] = true}})
+    equal(alone.settings.DSU_PROCS_WITH_SAO, nil)
+    equal(saidCount(alone, SAO_LINE), 0)
+end)
+test("procs: the step aside is decided at login, after SpellActivationOverlay has loaded", function()
+    -- SpellActivationOverlay loads after DSU (folder order): DSU's own
+    -- ADDON_LOADED is too early to see it; PLAYER_LOGIN is not.
+    local state = fixture({class = "MAGE", known = {[MISSILE_BARRAGE_TALENT] = true}, loadLate = SAO,
+        noProcs = not TOOLKIT_HAS_PROCS})
+    equal(state.suf.procs, nil)
+    equal(saidCount(state, SAO_LINE), 1)
+end)
+
+if TOOLKIT_HAS_PROCS then
+    test("procs: a Mage's procs go to the Toolkit's engine, with DSU's rows, widget, and claims", function()
+        local state = fixture({class = "MAGE", known = {[MISSILE_BARRAGE_TALENT] = true}})
+        local handle = state.suf.procs
+        equal(type(handle), "table", "a handle")
+        equal(handle.Addon(), "DyresShieldsUp")
+        equal(handle.List()[1].key, "missilebarrage")
+        equal(#handle.List(), 2, "the Mage's two procs only")
+        equal(handle.Known("missilebarrage"), true)
+        equal(handle.Known("fingersoffrost"), false)
+        equal(saidCount(state, PROCS_LINE) + saidCount(state, SAO_LINE), 0, "no fallback line")
+        local db = state.suf.db
+        equal(db.procs.arc.missilebarrage, true)
+        equal(db.procs.sounds.missilebarrage, "alertselect")
+        equal(handle.Store(), db.procs, "the engine reads DSU's own table")
+        local ids = soundIDs(state)
+        equal(ids[MISSILE_BARRAGE_BUFF], true, "sound on the buff")
+        equal(ids[MISSILE_BARRAGE_TALENT], nil, "never on the talent")
+        -- One cue per proc for the family: DBR's Proc Chimes step aside.
+        equal(state.toolkit.KindOwner("proc:missilebarrage"), "DyresShieldsUp")
+        equal(state.toolkit.KindOwner("proc:nightfall"), nil, "a Mage claims no Warlock proc")
+        local arc = rowFor(state, PROC_PREFIX .. "MISSILEBARRAGE_ARC")
+        equal(rowShown(arc), true, "arc row shown")
+        contains(arc.tooltip, "/stopcasting\n/use Arcane Missiles")
+        equal(rowShown(rowFor(state, PROC_PREFIX .. "FINGERSOFFROST_ARC")), false, "no talent, no row")
+        equal(rowFor(state, "DYRE_DYRESSHIELDSUP_PROCARCS_SCALE") ~= nil, true, "the arcs' size")
+        state.settings[PROC_PREFIX .. "MISSILEBARRAGE_ARC"]:SetValue(false)
+        equal(db.procs.arc.missilebarrage, false, "the switch writes DSU's table")
+        -- The arcs are a DSU widget, beside the ring, and go back with /dsu reset.
+        local keys = {}
+        for _, widget in ipairs(state.toolkit.Widgets("DyresShieldsUp")) do keys[widget.dyre.widgetKey] = true end
+        equal(keys.shield and keys.procarcs, true, "the ring and the arcs")
+        db.procs.position = {point = "CENTER", relativePoint = "BOTTOMLEFT", x = 10, y = 20}
+        state.clear()
+        state.slash("reset")
+        equal(db.procs.position, nil)
+        equal(state.said("Proc arcs moved back to their default place."), true)
+        state.clear()
+        state.slash("debug_procs")
+        contains(state.messages[1], "Missile Barrage: talent known")
+        equal(#state.messages, 2, "one line per proc")
+    end)
+    test("procs: a Warlock's Nightfall and Decimation go to the engine", function()
+        local state = fixture({class = "WARLOCK", known = {[NIGHTFALL_TALENT] = true}})
+        local handle = state.suf.procs
+        equal(type(handle), "table")
+        equal(#handle.List(), 2)
+        equal(handle.Known("nightfall"), true)
+        equal(handle.Known("decimation"), false)
+        equal(soundIDs(state)[SHADOW_TRANCE], true, "Nightfall's sound on Shadow Trance")
+        equal(state.toolkit.KindOwner("proc:nightfall"), "DyresShieldsUp")
+        equal(state.toolkit.KindOwner("proc:decimation"), "DyresShieldsUp", "claimed while not known")
+        equal(rowShown(rowFor(state, PROC_PREFIX .. "NIGHTFALL_SOUND")), true)
+    end)
+    test("procs: with SpellActivationOverlay and the switch on, DSU shows both", function()
+        local state = fixture({class = "MAGE", loaded = SAO, db = {procsWithSAO = true},
+            known = {[MISSILE_BARRAGE_TALENT] = true}})
+        equal(type(state.suf.procs), "table")
+        equal(saidCount(state, SAO_LINE), 0)
+        equal(soundIDs(state)[MISSILE_BARRAGE_BUFF], true)
+        equal(state.settings.DSU_PROCS_WITH_SAO:GetValue(), true, "the switch is there to turn it back off")
+    end)
+    test("procs: SanitizeDB repairs the proc settings and keeps no talent as a learned ID", function()
+        local state = fixture({class = "MAGE"})
+        local clean = state.suf.SanitizeDB({procs = {arc = {missilebarrage = false}, sound = "x",
+            sounds = {missilebarrage = 5}, position = {point = 1}}, procsWithSAO = "yes",
+            procIDs = {missilebarrage = MISSILE_BARRAGE_TALENT}})
+        equal(clean.procs.arc.missilebarrage, false, "a choice is kept")
+        equal(clean.procs.sound.missilebarrage, true, "a damaged part is the default")
+        equal(clean.procs.sounds.missilebarrage, "alertselect")
+        equal(clean.procs.position, nil, "a broken place is dropped")
+        equal(clean.procIDs.missilebarrage, nil, "a talent ID is never a buff ID")
+        equal(clean.procsWithSAO, false)
+        equal(state.suf.SanitizeDB({procIDs = {missilebarrage = MISSILE_BARRAGE_BUFF}}).procIDs.missilebarrage,
+            MISSILE_BARRAGE_BUFF)
+        equal(state.suf.SanitizeDB({}).procs.arc.nightfall, true, "every class's defaults")
+    end)
+    test("procs: a profile copy changes the proc settings live and keeps the learned IDs", function()
+        local state = fixture({class = "MAGE", known = {[MISSILE_BARRAGE_TALENT] = true},
+            db = {procIDs = {missilebarrage = MISSILE_BARRAGE_BUFF}},
+            globals = {DyresToolkitDB = otherProfile({scale = 100},
+                {procs = {arc = {missilebarrage = false}, sound = {missilebarrage = false}},
+                    procIDs = {missilebarrage = 999}})}})
+        local saved = state.toolkitNS.db.profiles["Samara - Forever"].parts.DyresShieldsUp
+        equal(saved.procIDs, nil, "learned IDs are not in the profile")
+        equal(type(saved.procs), "table", "the proc settings are")
+        local handle, applied = state.suf.procs, 0
+        local apply = handle.Apply
+        handle.Apply = function()
+            applied = applied + 1
+            return apply()
+        end
+        local ok, reload = state.toolkitNS.profile:CopyFrom("Alt - Forever")
+        equal(ok, true, tostring(reload))
+        equal(#reload, 0, "live, no reload")
+        equal(applied, 1, "ApplyProfile calls the handle's Apply")
+        equal(state.suf.db.procs.arc.missilebarrage, false)
+        equal(state.suf.db.procIDs.missilebarrage, MISSILE_BARRAGE_BUFF, "this character's learned ID")
+        equal(soundIDs(state)[MISSILE_BARRAGE_BUFF], nil, "the sound is off")
+    end)
+    test("procs: Classic Era Mage without the talent: hidden rows and no errors", function()
+        local state = fixture({class = "MAGE", classic = true})
+        equal(type(state.suf.procs), "table", "a Mage gets a handle")
+        equal(state.suf.procs.Known("missilebarrage"), false)
+        equal(rowShown(rowFor(state, PROC_PREFIX .. "MISSILEBARRAGE_ARC")), false)
+        equal(state.said("error"), false)
+    end)
+    test("procs: a Warrior's Overpower and Revenge arcs follow the game's usable answer", function()
+        local state = fixture({class = "WARRIOR", known = {[7384] = true, [6572] = true}})
+        local handle = state.suf.procs
+        equal(type(handle), "table", "a handle")
+        equal(type(handle.Usable), "function", "an engine with usable procs")
+        equal(#handle.List(), 2)
+        equal(handle.Known("overpower"), true, "the spell itself is known")
+        -- No sound and no claim: DBR plays these two.
+        equal(state.toolkit.KindOwner("proc:overpower"), nil)
+        equal(state.toolkit.KindOwner("proc:revenge"), nil)
+        equal(next(state.auraSounds or {}), nil, "no aura sound")
+        equal(next(state.suf.db.procIDs), nil, "no learned IDs")
+        -- Settings: the arc switch only.
+        equal(rowShown(rowFor(state, PROC_PREFIX .. "OVERPOWER_ARC")), true)
+        equal(state.settings[PROC_PREFIX .. "OVERPOWER_SOUND"], nil, "no sound switch")
+        equal(state.settings[PROC_PREFIX .. "OVERPOWER_SOUND_CHOICE"], nil)
+        -- Usable: full; open but short of rage: dim; else off. Also in combat.
+        state.combat = true
+        state.usable = {Overpower = {true, false}}
+        state.emit("SPELL_UPDATE_USABLE")
+        local look, arcs = handle.Usable("overpower")
+        equal(look, "full")
+        equal(arcs.left.shown and arcs.right.shown, true, "both arcs")
+        equal(arcs.right.alpha or 1, 1)
+        equal(handle.Usable("revenge"), "off")
+        state.usable = {Overpower = {false, true}}
+        state.emit("SPELL_UPDATE_USABLE")
+        look, arcs = handle.Usable("overpower")
+        equal(look, "dim", "the window is open, the rage is short")
+        equal(arcs.left.shown, true)
+        equal(arcs.left.alpha < 1, true, "dimmed")
+        state.usable = {}
+        state.emit("SPELL_UPDATE_USABLE")
+        look, arcs = handle.Usable("overpower")
+        equal(look, "off")
+        equal(arcs.left.shown or arcs.right.shown, false)
+        -- A secret answer is never compared and keeps the last look.
+        local hidden = secret()
+        state.secrets[hidden] = true
+        state.usable = {Revenge = {true, false}}
+        state.emit("SPELL_UPDATE_USABLE")
+        equal(handle.Usable("revenge"), "full")
+        state.usable = {Revenge = {hidden, hidden}}
+        state.emit("SPELL_UPDATE_USABLE")
+        equal(handle.Usable("revenge"), "full", "a secret keeps the last look")
+        -- The arc switch hides them.
+        state.combat = false
+        state.settings[PROC_PREFIX .. "REVENGE_ARC"]:SetValue(false)
+        local _, revenge = handle.Usable("revenge")
+        equal(revenge.left.shown, false)
+        state.clear()
+        state.slash("debug_procs")
+        contains(state.messages[1], "Overpower: spell known")
+    end)
+    test("procs: a Warrior who does not know the spells gets no arcs", function()
+        local state = fixture({class = "WARRIOR"})
+        local handle = state.suf.procs
+        equal(handle.Known("overpower"), false)
+        state.usable = {Overpower = {true, false}}
+        state.emit("SPELL_UPDATE_USABLE")
+        local _, arcs = handle.Usable("overpower")
+        equal(arcs.left.shown, false)
+        equal(rowShown(rowFor(state, PROC_PREFIX .. "OVERPOWER_ARC")), false)
+    end)
+else
+    print("Proc engine tests skipped: this Dyre's Toolkit copy has no Procs.lua.")
+end
+
 
 local failed = 0
 for index, entry in ipairs(tests) do

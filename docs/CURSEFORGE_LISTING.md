@@ -51,6 +51,12 @@ Per-file changelogs need no manual text: each CI upload uses the version's
 - **Display size** grows the crescents from their center (50-150%), while **Text size** and **Icon size** (50-150% each) keep the number and the icons as you like them; **Reset size** puts all three back to 100%.
 - An optional number, and an optional sound when a shield ends, chosen from Dyre's Sounds (which the CurseForge app installs with it).
 
+### Proc overlays
+- An arc on each side of your character and a sound the moment a proc you have a talent for appears, also in combat. The arcs drain with the proc's time and go when you use it.
+- Mage: **Missile Barrage** and **Fingers of Frost** (two charges, two arcs). Warlock: **Nightfall** and **Decimation**. Druid and Shaman: **Clearcasting** (sound off by default). Warrior: **Overpower** and **Revenge**, shown while usable (dimmed while you lack the rage). More classes follow.
+- Each proc has its own switches and sound. Move and size the arcs like any Dyre's AddOn frame. Needs Dyre's Toolkit 2.11 or later.
+- With **SpellActivationOverlay** loaded, Dyre's overlays stay off unless you turn on "Show Dyre's proc overlays with SpellActivationOverlay".
+
 ### With Mage Tools Forever or Warlock Tools Forever
 Mage Tools Forever (1.2.0 and later) and Warlock Tools Forever (1.3.0 and later) leave the shield to Dyre's Shields Up, and the CurseForge app installs it with them. The first time Dyre's Shields Up runs on a character, it copies that class's AddOn's shield settings once (place, sizes, the number, and the sound) and says so in chat. Settings Dyre's Shields Up already has are never replaced.
 
@@ -60,7 +66,7 @@ Needs Dyre's Toolkit 2.0 or later, which the CurseForge app installs with it: on
 ### Commands
 - `/dsu` or `/dsu options` opens the settings.
 - `/dsu unlock` and `/dsu lock` unlock and lock every Dyre's AddOn's frames; `/dsu reset` moves the display back to its default place.
-- `/dsu debug_shield` shows diagnostics in chat.
+- `/dsu debug_shield` and `/dsu debug_procs` show diagnostics in chat.
 - `/shieldsup` works the same, in case another AddOn uses `/dsu`.
 
 ### Compatibility
