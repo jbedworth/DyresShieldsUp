@@ -4,6 +4,14 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.5.0
+
+### Other changes
+
+- **What moved:** from Dyre's Shields Up into Dyre's Buff Reminders 1.13: the arcs and sounds for Missile Barrage, Fingers of Frost, Nightfall, Decimation, Druid and Shaman Clearcasting, Overpower, and Revenge, with their art and your settings. Absorb shields stay in Dyre's Shields Up.
+- **Dyre's Shields Up now shows shields only.** DSU's settings page has a button that opens Dyre's Buff Reminders, and DSU says it once in chat on a character that had a proc on. Install Dyre's Buff Reminders from CurseForge to keep them.
+- `/dsu debug_procs` is gone with the procs.
+
 ## 1.4.1
 
 ### Fixes

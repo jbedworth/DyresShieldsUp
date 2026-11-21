@@ -149,35 +149,15 @@ carry over:
       goes back to 100%, the default place, and the default sound. Export,
       change a size, import the line: the size comes back. In combat, a copy
       is refused.
-- [ ] Proc overlays (Toolkit 2.11): a Mage with Missile Barrage sees the
-      Procs rows on DSU's page; a proc shows both arcs and plays the sound,
-      also in combat and with no shield up, and Arcane Missiles takes them
-      away. `/dsu debug_procs` shows the buff's real ID as "(confirmed)"
-      after a proc out of combat. Unlocked, both sample arcs and one outline;
-      Proc arc size and `/dsu reset` work. A Warlock with Nightfall: the same
-      with Shadow Trance. A class without procs: no rows, no line.
-- [ ] Overpower and Revenge (a Warrior; usable procs): only the arc switches
-      on DSU's page. A dodge (Overpower) or a block, dodge, or parry (Revenge)
-      shows both arcs, full, in combat; dimmed while rage is short; gone when
-      used or the window closes. `/dsu debug_procs`: "spell known, usable
-      full|dim|off". Open question (the Toolkit's TESTING.md): whether
-      IsSpellUsable's second return (short of power) reads in combat; if it
-      is secret, the arcs keep their last look. One sound, DBR's.
-- [ ] Clearcasting (a Druid with Omen of Clarity, level 20 or more; a Shaman
-      with Elemental Focus): both arcs show on Clearcasting and go when it is
-      used; the sound switch starts off. `/dsu debug_procs` confirms the buff
-      ID (16870 Druid, 16246 Shaman) after a proc out of combat. DBR's
-      Clearcasting row is greyed ("Played by Dyre's Shields Up").
-- [ ] Fingers of Frost (no Frost Mage to test with; never holds a release):
-      two charges show both arcs; using one takes the right arc away.
-- [ ] With Dyre's Buff Reminders' Proc Chimes on for Nightfall: one sound,
-      not two (DSU owns "proc:nightfall").
-- [ ] SpellActivationOverlay loaded: one chat line at login, no Dyre arcs or
-      sounds, DBR's chimes as before, and the "Show Dyre's proc overlays with
-      SpellActivationOverlay" switch on DSU's page. Tick it and `/reload`:
-      both show. Without SAO, the switch is not there.
-- [ ] With a Dyre's Toolkit older than 2.11: one chat line at login, no
-      Procs rows, and the shields as before.
+- [ ] Proc cues moved (1.5.0): on a Mage or Warlock that had DSU 1.4.x
+      procs on, one chat line at the first login ("Proc arcs and sounds
+      moved to Dyre's Buff Reminders."), never after a `/reload` or the next
+      login; a Priest gets none. No DSU arcs, no proc sounds from DSU, no
+      Procs rows, and `/dsu debug_procs` shows the usage. With Dyre's Buff
+      Reminders 1.13.0: its proc arcs and sounds show with the choices made
+      in DSU 1.4.x, and DSU's "Proc cues moved to Dyre's Buff Reminders"
+      button opens its page. Without it, the button is greyed and its
+      tooltip says to install it. The shields work as before.
 - [ ] With Dyre's Toolkit disabled (or older than 2.0), DSU stays off and
       says once to install it from CurseForge.
 - [ ] With an MTF or WTF that ships Shield.lua v10 on a Mage or Warlock

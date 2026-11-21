@@ -4,12 +4,12 @@
 
 Dyre's Shields Up (DSU, `/dsu`) is a World of Warcraft: Forever AddOn that
 ships the shared shield display from Mage Tools Forever (MTF) on its own, for
-any class (author-approved: a Priest in the author's group asked for it), and,
-since the proc overlays (John, 2026-11-18: "DSU is the right home for our
-'spell activation overlays'; we already do this for the shields, which is an
-activation overlay, across various classes"), every class's proc overlay
-data. Keep this feature set; do not add speculative features or frameworks
-without agreement.
+any class (author-approved: a Priest in the author's group asked for it).
+Shields only: the proc overlays (arcs and sounds), here in 1.4.x, moved to
+Dyre's Buff Reminders in 1.5.0 (John, 2026-11-20: DBR is "a better fit for
+all buffs/procs ... This lets DSU focus on managing just absorption shield
+rendering"). Keep this feature set; do not add speculative features or
+frameworks without agreement.
 
 Naming (author-approved): renamed from Shields Up Forever (SUF, `/suf`)
 before its CurseForge release. The title starts with "Dyre's", so players
@@ -205,75 +205,36 @@ Forever.
   the copy is new tables and the source is never written. It records
   `migratedFrom` and says once "Copied your shield settings from <AddOn>."
   An AddOn disabled at that login is not loaded, so nothing is copied.
-- Proc overlays (Phase 0, built, not released; John, 2026-11-18: "build the
-  catalog one set of classes at a time, starting with a simple set of mage,
-  warlock, paladin, and warrior overlays, in DSU"; on SpellActivationOverlay,
-  SAO: "We'll plan to coexist"). Procs.lua holds the catalog; Dyre's
-  Toolkit's proc engine (2.11.0, its Procs.lua and AGENTS.md "Proc cues")
-  draws and plays it. DSU is the engine's one caller.
-  - Data: `DSU.PROCS`, moved from MTF's and WTF's unreleased proc code, keys
-    unchanged (Dyre's Buff Reminders' `PROC_SOUNDS` matches on them):
-    `missilebarrage` (talents 400588, 1326083; buff 400589, spare 44401; a
-    macro in its tooltip, `DSU.MISSILE_BARRAGE_MACRO`, with `/use`; 1.4.1:
-    the client's name for Arcane Missiles, `C_Spell.GetSpellName(5143)`, set
-    at PLAYER_LOGIN by `DSU.LocalizeProcTooltips`, English when missing or
-    secret; spell names in macro text are never English-only),
-    `fingersoffrost` (talent 400647; buff 400670, spare 44544; `stacks = 2`),
-    `nightfall` (talents 18094, 18095; Shadow Trance 17941; sound impspell),
-    `decimation` (talent 440870; no buff ID known); Clearcasting (John,
-    2026-11-20: "Go for A", Druid and Shaman, not Mage) `druidclearcasting`
-    (Omen of Clarity 16864, a trained passive on Forever; buff 16870) and
-    `shamanclearcasting` (Elemental Focus 16164; buff 16246), DBR's keys
-    and IDs, `soundOn = false` (the Toolkit's sound switch starts off, as
-    DBR's). The comments in
-    Procs.lua give each ID's source; none is confirmed in client. A talent
-    ID is never a buff ID (the talent's passive aura has the buff's name).
-    Warrior (John, 2026-11-19: "Overpower/Revenge for Warrior would be super
-    helpful, not sure about Paladin yet"; "skip Paladin for now"): the
-    Toolkit's usable procs (2.11.0, built on DSU's request): `overpower`
-    (usable 7384) and `revenge` (usable 6572), the same keys as DBR's
-    PROC_SOUNDS, no buff, no ids, no talents (known = the spell itself), no
-    sound and no Owners claim (DBR's reactive sounds never step aside). The
-    engine reads `C_Spell.IsSpellUsable` by name on SPELL_UPDATE_USABLE, also
-    in combat: full, dim (open, short of rage), or off; a secret keeps the
-    last look. An older engine drops entries without a buff, so a Warrior
-    then gets no handle and no error (the clean fallback). Paladin is
-    skipped for now. Per-family art comes in Phase 1.
-  - Art: one spec-level `DSU.PROC_ART` for every proc, Textures/ArcaneArc.tga
-    and ArcaneArcLeft.tga (white lightning, tinted with each proc's color),
-    made by scripts/make_arcane_arcs.py (headless Chrome; moved from MTF) to
-    the Toolkit's art geometry. tests check the files are there, 256 square,
-    and mirrored.
-  - `DSU.InitializeProcs` at PLAYER_LOGIN, after the shields: a class with
-    no proc gets nothing (no line); a step aside (below) or a Toolkit without
-    `RegisterProcs` gets one chat line and no handle, and the shields work as
-    before. Else `RegisterProcs{addon, art, procs, store = db.procs, learned
-    = db.procIDs}`: the engine's widget `procarcs` (one of DSU's widgets, so
-    `ReapplyWidgets` covers it), its Owners claims `proc:<key>` (DBR's Proc
-    Chimes step aside), the sound, and learning the buff IDs out of combat.
-  - Settings: `AddProcSettings(category, layout, DSU.procs, {header =
-    "Procs"})` on DSU's page after the ring's sliders; `SanitizeDB` calls
-    `SanitizeProcs` and `SanitizeProcIDs` (with an older Toolkit the saved
-    tables stay as they are). Profile: `procs` and `procsWithSAO` in it,
-    `procIDs` a `characterKeys` entry; `ApplyProfile` reapplies every DSU
-    widget, then `DSU.procs.Apply()`.
-  - SAO (DSU's rule, not the engine's): with the AddOn
-    `SpellActivationOverlay` loaded (`C_AddOns.IsAddOnLoaded`, at
-    PLAYER_LOGIN: it loads after DSU by folder name, so DSU's own
-    ADDON_LOADED is too early), DSU registers no procs and says once
-    "SpellActivationOverlay is loaded, so Dyre's proc overlays stay off ...".
-    Not registering also leaves DBR's chimes, since no Owners kind is
-    claimed. `db.procsWithSAO` ("Show Dyre's proc overlays with
-    SpellActivationOverlay", off by default, shown only with SAO loaded)
-    registers anyway; a change applies after a /reload (a registration
-    cannot be taken back). DSU never reads SAO's code or data.
-  - `/dsu debug_procs`: the engine's line per proc, or why there are none.
-    `/dsu reset` also resets the arcs.
-  - Release: at least 24 hours after Toolkit 2.11.0. With an older Toolkit
-    (the vendored tests/toolkit copy, 2.10.2) the suite runs the fallback and
-    skips the engine tests.
+- Proc cues moved to Dyre's Buff Reminders (1.5.0; John, 2026-11-20, "start").
+  DSU 1.4.x drew proc arcs and played their sounds through Dyre's Toolkit's
+  proc engine (2.11); DBR 1.13.0 (Toolkit 2.12.0) now holds the catalog, the
+  art, the localized Missile Barrage macro, `procsWithSAO`, and the
+  SpellActivationOverlay step-aside. Toolkit 2.12.0 draws a proc only while
+  the registering AddOn owns its kind, and DBR claims at priority 20 over
+  DSU's 10, so a DSU 1.4.x beside DBR 1.13.0 steps aside by itself.
+  - No `RegisterProcs`, no Procs rows, no "Proc arc size", no
+    `/dsu debug_procs` (it now shows the usage), no SAO step-aside.
+  - The 1.4.x proc data stays in DyresShieldsUpDB as saved
+    (`DSU.LEGACY_PROC_KEYS`: `procs`, the switches, sounds, the arcs' place
+    and size; `procIDs`; `procsWithSAO`): `SanitizeDB` never repairs or
+    removes it, since DBR 1.13.0 reads it once to import it. All three, and
+    `procsMovedNoted`, are profile `characterKeys`, so a profile copy or
+    import never writes them and they are never exported.
+  - Settings: one row, "Proc cues moved to Dyre's Buff Reminders", the
+    Toolkit's `AddSettingsLink` (2.3.0) to DBR's page ("Open Buff
+    Reminders"), greyed while DBR has not joined the toolkit, with the note
+    "... install it from CurseForge to keep them."; with an older Toolkit,
+    no row. Every class gets it.
+  - Chat, once per character (`db.procsMovedNoted`, set at the first 1.5.0
+    login either way): "Proc arcs and sounds moved to Dyre's Buff
+    Reminders.", only when 1.4.x left a proc of the character's own class
+    (Procs.lua's `LEGACY_CLASS_PROCS`, the 1.4.x catalog's keys) with its
+    arcs or sound on. 1.4.x saved a switch for every key on every character,
+    so other classes' keys say nothing.
+  - Art: Textures/ArcaneArc.tga, ArcaneArcLeft.tga, and
+    scripts/make_arcane_arcs.py left DSU in 1.5.0; DBR 1.13.0 has the copy.
 - Commands: `/dsu` and `/dsu options`, `unlock`, `lock`, `reset`,
-  `debug_shield` (runs even when DSU is unavailable), `debug_procs`. Backup slash
+  `debug_shield` (runs even when DSU is unavailable). Backup slash
   `/shieldsup`; a clash on `/dsu` is reported once at login.
 - No class gate. DSU turns off only for a mixed install (missing Shield.lua or
   namespace functions); the shield component itself reports a client without
@@ -282,8 +243,9 @@ Forever.
 ## Project structure
 
 - Runtime files: DyresShieldsUp.toc, Commands.lua, Core.lua, AuraEngine.lua, Shield.lua,
-  Procs.lua, Options.lua, loaded in that order, plus the five textures. Procs
-  holds the proc overlay catalog and hands it to the Toolkit. Commands parses
+  Procs.lua, Options.lua, loaded in that order, plus the three shield textures. Procs
+  says where the proc cues went (the settings link and the one chat line) and
+  names the 1.4.x proc data left for DBR. Commands parses
   `/dsu`; Core owns saved settings, the login banner, install checks, slash
   conflict reporting, the lock, and startup; AuraEngine (copied from WTF) gives
   the icon row plain-Lua aura slots where the engine is missing (Classic Era
@@ -367,8 +329,7 @@ Forever.
   and fails without it.
 - Package only DyresShieldsUp.toc, Commands.lua, Core.lua, AuraEngine.lua, Shield.lua,
   Procs.lua, Options.lua, LICENSE, Textures/ShieldArc.tga, Textures/ShieldArcInner.tga,
-  Textures/ShieldArcInnermost.tga, Textures/ArcaneArc.tga, and
-  Textures/ArcaneArcLeft.tga (no sounds: they ship only in Dyre's
+  and Textures/ShieldArcInnermost.tga (no sounds: they ship only in Dyre's
   Sounds) under the top-level `DyresShieldsUp/`
   folder, named `DyresShieldsUp-<version>-forever.zip`, with the builder's
   BigWigs-format `release.json` (flavor `forever`) attached for WowUp.

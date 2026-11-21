@@ -46,54 +46,13 @@ shield is used up.
   shows a full sample of every part, outlined, to drag; `/dsu reset` puts it
   back.
 
-## Proc overlays
+## Proc arcs and sounds moved
 
-The moment a proc you have a talent for appears, an arc shows on each side of
-your character, in the proc's color, and a sound plays, also in combat. The
-arcs drain with the proc's time left and go the moment you use the proc. The
-Toolkit (2.11 or later) draws them; Dyre's Shields Up holds the list of procs.
-
-- **Mage:** **Missile Barrage** (your next Arcane Missiles is faster and
-  free) and **Fingers of Frost** (with two charges both arcs show; when you
-  use one, the right arc goes). A macro catches Missile Barrage best, also
-  during a cast:
-
-  ```text
-  /stopcasting
-  /use Arcane Missiles
-  ```
-
-  The tooltip in the game shows the macro with your client's name for
-  Arcane Missiles.
-
-  DSU never makes macros for you.
-- **Warlock:** **Nightfall** (Shadow Trance: your next Shadow Bolt is
-  instant) and **Decimation** (Soul Fire casts faster and costs no Soul
-  Shard).
-- **Druid:** **Clearcasting** from Omen of Clarity. **Shaman:**
-  **Clearcasting** from Elemental Focus. Their sound starts off, since the
-  game already gives a cue; turn it on in DSU's settings.
-- **Warrior:** **Overpower** (after your target dodges) and **Revenge**
-  (after you block, dodge, or parry). These are not buffs: the arcs show
-  while the game lets you use the ability, dimmed while you lack the rage,
-  with no timer and no sound from DSU (Dyre's Buff Reminders plays a sound
-  for these two). Each has an arc switch only.
-- More classes follow, one set at a time.
-- Each proc has its own switches for the arcs and the sound, and its own
-  sound from Dyre's Sounds. Only a character who has the talent sees its
-  settings.
-- The arcs are their own frame, centered on your character. Unlock to drag
-  them; **Proc arc size** sizes them, and `/dsu reset` moves them back.
-- The first time a proc is up out of combat, DSU reads its buff's real spell
-  ID and keeps it for that character.
-- Dyre's Buff Reminders' Proc Chimes step aside for a proc DSU plays, so a
-  proc makes one sound.
-- **SpellActivationOverlay:** with that AddOn loaded, Dyre's proc overlays
-  stay off, so you don't get two of each, and DSU says so once in chat. To
-  show both, turn on **Show Dyre's proc overlays with SpellActivationOverlay**
-  on DSU's page; it applies after a `/reload`.
-- With a Dyre's Toolkit older than 2.11, the shields work as before and DSU
-  says once to update it.
+Since 1.5.0, Dyre's Shields Up shows shields only. The proc arcs and sounds
+of 1.4 (Missile Barrage, Fingers of Frost, Nightfall, Decimation,
+Clearcasting, Overpower, and Revenge) are now in **Dyre's Buff Reminders**,
+with your choices. DSU's page has a button that opens its settings, and DSU
+says it once in chat on a character that had a proc on.
 
 ## With Dyre's Toolkit
 
@@ -143,7 +102,6 @@ commands point you to that AddOn's settings.
 | `/dsu unlock`, `/dsu lock` | Unlocks every Dyre's AddOn's frames to drag them, and locks them again |
 | `/dsu reset` | Moves the display back to its default place |
 | `/dsu debug_shield` | Diagnostics: the absorb APIs, which AddOn draws the ring, each shield, and the icon row |
-| `/dsu debug_procs` | One line per proc: whether you know its talent, its buff IDs, the arcs, and the sound |
 
 `/shieldsup` works the same, in case another AddOn uses `/dsu`.
 

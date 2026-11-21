@@ -259,39 +259,17 @@ class ReleaseTests(unittest.TestCase):
 
     def test_package_ships_the_shield_arc(self):
         self.assertEqual(builder.MEDIA_FILES, ("Textures/ShieldArc.tga", "Textures/ShieldArcInner.tga",
-                                               "Textures/ShieldArcInnermost.tga", "Textures/ArcaneArc.tga",
-                                               "Textures/ArcaneArcLeft.tga"))
+                                               "Textures/ShieldArcInnermost.tga"))
         path, _ = self.build()
         with zipfile.ZipFile(path) as archive:
             self.assertIn("DyresShieldsUp/Textures/ShieldArc.tga", archive.namelist())
             self.assertIn("DyresShieldsUp/Textures/ShieldArcInner.tga", archive.namelist())
             self.assertIn("DyresShieldsUp/Textures/ShieldArcInnermost.tga", archive.namelist())
-            # The proc overlays' art (Procs.lua's DSU.PROC_ART).
-            self.assertIn("DyresShieldsUp/Textures/ArcaneArc.tga", archive.namelist())
-            self.assertIn("DyresShieldsUp/Textures/ArcaneArcLeft.tga", archive.namelist())
+            # The 1.4.x proc arcs moved to Dyre's Buff Reminders (1.5.0).
+            self.assertFalse(any("ArcaneArc" in name for name in archive.namelist()))
             self.assertFalse(any("/Sounds/" in name for name in archive.namelist()),
                              "the sounds ship only in Dyre's Sounds")
             self.assertEqual(len(archive.namelist()), len(builder.PACKAGE_FILES))
-
-    def test_proc_arcs_are_256_square_and_mirrored(self):
-        # Dyre's Toolkit Procs.lua ("Art"): square, the left file the right one
-        # mirrored, because a StatusBar sets its own texture coordinates.
-        right = (ROOT / "Textures/ArcaneArc.tga").read_bytes()
-        left = (ROOT / "Textures/ArcaneArcLeft.tga").read_bytes()
-        for name, data in (("right", right), ("left", left)):
-            builder._validate_tga(name, data)
-            self.assertEqual(int.from_bytes(data[12:14], "little"), 256, name)
-        size = 256
-        body_right, body_left = right[18:], left[18:]
-        for y in (64, 128, 190):
-            for x in (10, 120, 220, 240):
-                a = body_right[(y * size + x) * 4 + 3]
-                b = body_left[(y * size + (size - 1 - x)) * 4 + 3]
-                self.assertLessEqual(abs(a - b), 3, (x, y))
-        alpha = [body_right[i * 4 + 3] for i in range(size * size)]
-        self.assertGreater(max(alpha), 200, "the art is there")
-        self.assertEqual(max(alpha[(y * size) + x] for y in range(size) for x in range(0, 128)), 0,
-                         "the right arc's left half is empty: the art sits on the ring")
 
     def test_committed_shield_arc_matches_the_build(self):
         spec = importlib.util.spec_from_file_location("build_arc", ROOT / "scripts" / "build_arc.py")
