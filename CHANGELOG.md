@@ -4,6 +4,12 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.5.1
+
+### Other changes
+
+- When Mage Tools Forever draws the shield display, the "Display size" slider on DSU's settings page now shows a gold mark at its default size (100%), as the other Dyre's AddOns sliders do.
+
 ## 1.5.0
 
 ### Other changes

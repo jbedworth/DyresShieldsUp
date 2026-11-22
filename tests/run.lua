@@ -258,6 +258,8 @@ local function fixture(options)
             function object:AddModifyPredicate(predicate)
                 self.modifyPredicates[#self.modifyPredicates + 1] = predicate
             end
+            -- The toolkit's AddDefaultTick wraps InitFrame (and saves its range).
+            function object:InitFrame() end
             object.shownPredicates = {}
             function object:AddShownPredicate(predicate)
                 self.shownPredicates[#self.shownPredicates + 1] = predicate
@@ -482,6 +484,10 @@ local function fixture(options)
         if options.noLink then
             env.DyresToolkit.AddSettingsLink = nil
         end
+        -- options.noTick: a Toolkit older than 2.2.0 (no AddDefaultTick).
+        if options.noTick then
+            env.DyresToolkit.AddDefaultTick = nil
+        end
         if options.oldToolkit then
             local require = env.DyresToolkit.RequireContract
             env.DyresToolkit.RequireContract = function(n)
@@ -584,7 +590,7 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.5.0 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.5.1 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
@@ -1564,6 +1570,30 @@ test("with Mage Tools Forever running too, only one ring shows, and DSU says whe
         equal(predicate == nil or predicate(), true, "not greyed while DSU draws the ring")
         equal(initializer.tooltip:find("draws the shield display", 1, true), nil)
     end
+end)
+test("the kept display size slider has the gold default mark; an older Toolkit gives none", function()
+    local function sizeSlider(state)
+        for _, initializer in ipairs(state.categories[PAGE].initializers) do
+            if initializer.setting and initializer.setting.variable == "DSU_SHIELD_SCALE" then
+                return initializer
+            end
+        end
+    end
+    local copies = {{addon = "MageToolsForever", before = true, runs = true}}
+    local state = fixture({class = "MAGE", shieldCopies = copies})
+    local slider = sizeSlider(state)
+    equal(slider ~= nil, true, "the slider that keeps the saved size")
+    local display = state.suf.ShieldDisplay
+    equal(slider.dyreDefault.min, display.SCALE_MIN)
+    equal(slider.dyreDefault.max, display.SCALE_MAX)
+    equal(slider.dyreDefault.default, display.DEFAULT_SCALE)
+    equal(slider.dyreDefault.default, 100)
+    equal(slider.modifyPredicates[1](), false, "still greyed while the copy draws the ring")
+    local old = fixture({class = "MAGE", shieldCopies = {{addon = "MageToolsForever", before = true, runs = true}},
+        noTick = true})
+    local plain = sizeSlider(old)
+    equal(plain ~= nil, true, "the slider is still there")
+    equal(plain.dyreDefault, nil, "no mark")
 end)
 test("a newer copy elsewhere takes over; DSU takes over from an older one", function()
     local newer = fixture({shieldCopies = {{addon = "MageToolsForever", before = true, runs = true,

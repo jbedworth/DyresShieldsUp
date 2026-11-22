@@ -129,9 +129,14 @@ function DSU.InitializeOptions()
                 DSU.db.shield.scale = display.SanitizeScale(value)
                 DSU.RefreshShield()
             end)
-        GreyUnlessOwner(Settings.CreateSlider(category, scale,
+        local slider = GreyUnlessOwner(Settings.CreateSlider(category, scale,
             SliderOptions(display.SCALE_MIN, display.SCALE_MAX, display.SCALE_STEP),
             "How big the shield display is, in percent." .. note), display)
+        -- The gold default mark, as on the toolkit's own sliders (2.2.0).
+        if type(DSU.toolkit.AddDefaultTick) == "function" then
+            DSU.toolkit.AddDefaultTick(slider,
+                {min = display.SCALE_MIN, max = display.SCALE_MAX, default = display.DEFAULT_SCALE})
+        end
     end
     -- Proc cues moved to Dyre's Buff Reminders (1.5.0): a link to its page.
     DSU.AddProcsMovedRow(category, layout)
