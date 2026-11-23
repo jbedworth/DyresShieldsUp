@@ -50,7 +50,18 @@ local function Metadata(field)
     end
 end
 
+-- Dyre's Toolkit 2.14.0's "Welcome messages at login" switch (account-wide).
+-- Without ShowWelcome (an older toolkit, or none), the welcome lines show.
+local function WelcomeOff()
+    local toolkit = DyresToolkit
+    return type(toolkit) == "table" and type(toolkit.ShowWelcome) == "function" and toolkit.ShowWelcome() == false
+end
+
 local function ReportLoaded(available)
+    -- Only the welcome is skipped: with a problem, the banner stays above it.
+    if available and WelcomeOff() then
+        return
+    end
     local banner = Metadata("Title") or DEFAULT_TITLE
     local version, author = Metadata("Version"), Metadata("Author")
     if version then

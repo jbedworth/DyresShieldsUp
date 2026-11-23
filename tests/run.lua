@@ -488,6 +488,13 @@ local function fixture(options)
         if options.noTick then
             env.DyresToolkit.AddDefaultTick = nil
         end
+        -- options.welcome: "absent" (a Toolkit older than 2.14.0, no
+        -- ShowWelcome), or what ShowWelcome returns.
+        if options.welcome == "absent" then
+            env.DyresToolkit.ShowWelcome = nil
+        elseif options.welcome ~= nil then
+            env.DyresToolkit.ShowWelcome = function() return options.welcome end
+        end
         if options.oldToolkit then
             local require = env.DyresToolkit.RequireContract
             env.DyresToolkit.RequireContract = function(n)
@@ -590,10 +597,36 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.5.1 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.5.2 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
+end)
+test("the welcome follows Dyre's Toolkit's switch; problems always show", function()
+    local BANNER = "DSU: Dyre's Shields Up 1.5.2 by Dyre"
+    -- Shown: no toolkit (then the install line follows), a toolkit without
+    -- ShowWelcome, and ShowWelcome true.
+    equal(fixture({noToolkit = true}).messages[1], BANNER, "no toolkit")
+    for _, welcome in ipairs({"absent", true}) do
+        local state = fixture({welcome = welcome})
+        equal(state.messages[1], BANNER, tostring(welcome))
+        equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.", tostring(welcome))
+    end
+    -- Hidden: ShowWelcome false, and DSU still runs.
+    local quiet = fixture({welcome = false})
+    equal(#quiet.messages, 0, "no welcome lines")
+    equal(quiet.suf.available, true)
+    equal(quiet.ring() ~= nil, true)
+    -- Problems show with ShowWelcome false, the banner with them.
+    local mixed = fixture({welcome = false, files = {"Commands.lua", "Core.lua", "Options.lua"}})
+    equal(mixed.messages[1], BANNER, "the banner names the version with a problem")
+    contains(mixed.last(), "missing Shield.lua")
+    local old = fixture({welcome = false, oldToolkit = true})
+    contains(old.last(), "needs Dyre's Toolkit 2.0")
+    local copied = fixture({welcome = false, class = "MAGE",
+        shieldCopies = {{addon = "MageToolsForever", before = true, runs = true}}})
+    equal(copied.said("The shield display is shown by MageToolsForever; use its settings for it."), true,
+        "other lines are not welcome lines")
 end)
 test("the TOC loads the toolkit first and nests under it in the AddOn list", function()
     local state = fixture()
