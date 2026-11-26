@@ -121,6 +121,18 @@ Forever.
   icon row's frame, the timed crescents' in the ring (so they grow with the
   outer crescent), each set up only in its initializeFrame. A host without
   part sliders gets the number and the icons at 100%.
+- Version 12 (DSU 1.5.3; a player's report, 2026-11-26: no shields in
+  battlegrounds on Forever): while an AddOn restriction that hides auras is
+  active (`AURA_RESTRICTIONS`: Encounter, ChallengeMode, PvPMatch;
+  `C_RestrictedActions.IsAddOnRestrictionActive`), out of combat too,
+  `GetAuraDataBySpellName` returns nothing for buffs that are up (found in
+  client by Dyre's Buff Reminders 1.13.2 in an encounter; PvPMatch inferred).
+  `CheckBuffs` ended every shield then, so the ring hid out of combat in a
+  match. Now `AurasHidden()` (combat, or such a restriction; never on Classic)
+  stops `CheckBuffs` and keeps the display shown as in combat, its opacity the
+  absorb; `ADDON_RESTRICTION_STATE_CHANGED` reads the buffs again. Map is not
+  one (aura reads worked in Deadmines with it). `/dsu debug_shield` prints
+  `auraRestriction` and `aurasHidden`.
 - Classic Era and Anniversary (not yet released there; found in client on
   Era 1.15.9: the icons and Mana Shield's crescent showed, the outer ring was
   a faint ghost): no engine aura slots, so AuraEngine.lua's plain-Lua slots

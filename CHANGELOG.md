@@ -4,6 +4,12 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.5.3
+
+### Fixes
+
+- **Shields show in battlegrounds again.** During a battleground match (and a boss encounter or a keystone), the game hides your buffs from AddOns also out of combat, so the shield display thought your shield had ended and hid it. It now stays up there as it does in combat, and its opacity still follows your absorb. `/dsu debug_shield` says when such a restriction is on.
+
 ## 1.5.2
 
 ### Other changes

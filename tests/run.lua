@@ -126,10 +126,12 @@ local function fixture(options)
         state.loadedAddOns[name] = true
     end
     env.Enum = {StatusBarTimerDirection = {ElapsedTime = 0, RemainingTime = 1},
-        AddOnRestrictionType = {Combat = 0, Encounter = 1, Chat = 5},
+        AddOnRestrictionType = {Combat = 0, Encounter = 1, ChallengeMode = 2, PvPMatch = 3, Map = 4, Chat = 5},
         UnitAuraSoundTrigger = {Added = 0, ApplicationsIncreased = 1, Removed = 2}}
+    -- state.pvp: an active battleground match; state.map: the Map restriction.
     env.C_RestrictedActions = {IsAddOnRestrictionActive = function(kind)
-        return kind == 1 and state.encounter == true
+        return (kind == 1 and state.encounter == true) or (kind == 3 and state.pvp == true)
+            or (kind == 4 and state.map == true)
     end}
     -- Absorbs: always secret, as the client's UnitGetTotalAbsorbs is.
     state.absorb = secret()
@@ -211,6 +213,9 @@ local function fixture(options)
             equal(unit, "player")
             equal(filter, "HELPFUL")
             if state.combat then error("Auras cannot be accessed when secret while tainted") end
+            -- As in client (DBR 1.13.2, an encounter): nothing comes back under
+            -- an aura restriction, though the buff is up.
+            if state.encounter or state.pvp then return nil end
             return state.buffs[name]
         end,
     }
@@ -597,13 +602,13 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.5.2 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.5.3 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
 end)
 test("the welcome follows Dyre's Toolkit's switch; problems always show", function()
-    local BANNER = "DSU: Dyre's Shields Up 1.5.2 by Dyre"
+    local BANNER = "DSU: Dyre's Shields Up 1.5.3 by Dyre"
     -- Shown: no toolkit (then the install line follows), a toolkit without
     -- ShowWelcome, and ShowWelcome true.
     equal(fixture({noToolkit = true}).messages[1], BANNER, "no toolkit")
@@ -843,6 +848,54 @@ test("in combat buffs are not read, and the display stays up", function()
     state.emit("PLAYER_REGEN_ENABLED")
     equal(state.ring().shown, false, "out of combat the broken shield is seen")
 end)
+test("in a battleground match buffs are not read out of combat, and the display stays up", function()
+    local state = fixture({class = "PRIEST"})
+    local PWS = "Power Word: Shield"
+    state.pvp = true
+    state.emit("ADDON_RESTRICTION_STATE_CHANGED")
+    state.buffs[PWS] = {name = PWS, expirationTime = state.now + 30}
+    state.cast(POWER_WORD_SHIELD)
+    -- The shield's own UNIT_AURA: the read finds nothing, and the shield stays.
+    state.emit("UNIT_AURA", "player")
+    equal(state.ring().shown, true, "shown out of combat during the match")
+    equal(state.ring().visible.alpha, state.absorb, "its opacity is the absorb")
+    -- The shield is still known (its color and end), not ended by the empty read.
+    local function knownLine()
+        state.clear()
+        state.slash("debug_shield")
+        return table.concat(state.messages, "|")
+    end
+    contains(knownLine(), "powerwordshield name=Power Word: Shield left=")
+    equal(knownLine():find("powerwordshield name=Power Word: Shield left=none", 1, true), nil, "still known")
+    -- In and out of combat: still up.
+    state.combat = true
+    state.emit("PLAYER_REGEN_DISABLED")
+    state.combat = false
+    state.emit("PLAYER_REGEN_ENABLED")
+    equal(state.ring().shown, true, "leaving combat ends nothing")
+    equal(knownLine():find("powerwordshield name=Power Word: Shield left=none", 1, true), nil,
+        "still known after combat")
+    -- Even with no known shield (a secret cast), the display stays up.
+    state.now = state.now + 60
+    state.runTimers()
+    equal(state.ring().shown, true, "up for the whole match, invisible with no absorb")
+    state.clear()
+    state.slash("debug_shield")
+    contains(table.concat(state.messages, "|"), "auraRestriction=PvPMatch aurasHidden=true")
+    -- The match ends: the buffs are read again, and the gone shield is seen.
+    state.buffs[PWS] = nil
+    state.pvp = false
+    state.emit("ADDON_RESTRICTION_STATE_CHANGED")
+    equal(state.ring().shown, false, "hidden once the reads work and no shield is up")
+end)
+test("the Map restriction does not hide buffs, so a broken shield is seen", function()
+    local state = fixture({class = "PRIEST"})
+    state.map = true
+    state.emit("ADDON_RESTRICTION_STATE_CHANGED")
+    state.cast(POWER_WORD_SHIELD)
+    state.emit("UNIT_AURA", "player")
+    equal(state.ring().shown, false, "no buff up, so the shield ended")
+end)
 test("the settings page changes the display", function()
     local state = fixture()
     local ring = state.ring()
@@ -969,7 +1022,7 @@ test("/dsu debug_shield runs every step", function()
     state.clear()
     state.slash("debug_shield")
     local text = table.concat(state.messages, "|")
-    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v11 (running)")
+    contains(text, "owner=DyresShieldsUp copies=DyresShieldsUp v12 (running)")
     contains(text, "minimumAbsorb=75")
     contains(text, "the absorb total shows above your character")
     equal(text:find("failed", 1, true), nil, "every debug step ran")

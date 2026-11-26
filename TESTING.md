@@ -80,6 +80,10 @@ carry over:
 - [ ] As a Priest: Power Word: Shield on yourself shows the white crescent,
       empties as you take damage, also in combat, and drops the moment it is
       used up; its icon shows under the number; `/dsu debug_shield` names it.
+- [ ] In a battleground (Forever), out of combat: a shield cast before the
+      fight shows and stays after combat ends; `/dsu debug_shield` says
+      `auraRestriction=PvPMatch aurasHidden=true` during the match and
+      `auraRestriction=nil` after it, when a gone shield hides the ring.
 - [ ] As a Warrior or Rogue: another player's Power Word: Shield shows; any
       other absorb shows in gold for 30 s.
 - [ ] A Paladin's Blessing of Protection on you draws the gold innermost arc

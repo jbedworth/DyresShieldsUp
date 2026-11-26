@@ -63,7 +63,7 @@ local addonName, ns = ...
 -- other copy says which AddOn shows it. Version 1 copies elect among every
 -- registered copy, so a version 1 copy stands down for any newer one.
 
-local VERSION = 11
+local VERSION = 12
 local REGISTRY_NAME = "ShieldForeverRegistry"
 
 local ARC_TEXTURE = "Interface\\AddOns\\" .. addonName .. "\\Textures\\ShieldArc"
@@ -336,6 +336,31 @@ local function Describe(value)
     return IsSecret(value) and "secret" or tostring(value)
 end
 
+-- While one of these AddOn restrictions is active, out of combat too (a
+-- battleground match, a boss encounter, a keystone), aura reads return nothing
+-- for buffs that are up (found in client by Dyre's Buff Reminders 1.13.2 in an
+-- encounter; PvPMatch inferred from a player's report that the ring was missing
+-- in battlegrounds). Map is not one: aura reads worked in Deadmines with it.
+local AURA_RESTRICTIONS = {"Encounter", "ChallengeMode", "PvPMatch"}
+
+local function RestrictionActive(name)
+    if type(C_RestrictedActions) ~= "table" or type(C_RestrictedActions.IsAddOnRestrictionActive) ~= "function"
+        or type(Enum) ~= "table" or type(Enum.AddOnRestrictionType) ~= "table" then
+        return false
+    end
+    local kind = Enum.AddOnRestrictionType[name]
+    return kind ~= nil and C_RestrictedActions.IsAddOnRestrictionActive(kind) == true
+end
+
+-- The first restriction active that hides auras, or nil.
+local function AuraRestriction()
+    for _, name in ipairs(AURA_RESTRICTIONS) do
+        if RestrictionActive(name) then
+            return name
+        end
+    end
+end
+
 local function HasAbsorbAPI()
     return type(UnitGetTotalAbsorbs) == "function" and type(UnitHealthMax) == "function"
 end
@@ -353,6 +378,11 @@ end
 -- Classic: plain aura reads, and an absorb total that stays 0.
 local function PlainClient()
     return type(ns.AuraEngineKind) == "function" and ns.AuraEngineKind() == "lua"
+end
+
+-- Buffs cannot be read: in combat, or under an aura restriction (Classic has neither).
+local function AurasHidden()
+    return not PlainClient() and (InCombatLockdown() or AuraRestriction() ~= nil)
 end
 
 local function ShieldAura(entry)
@@ -584,7 +614,8 @@ function ShieldDisplay.Refresh()
     -- is the absorb, invisible with none, and the engine shows each icon and
     -- timed crescent only while its buff is up.
     -- (Classic reads buffs in combat, so there only a shield up shows it.)
-    if settings.enabled and (up or (InCombatLockdown() and not PlainClient()) or not settings.locked) then
+    -- The same under an aura restriction, out of combat too (a battleground).
+    if settings.enabled and (up or AurasHidden() or not settings.locked) then
         UpdateFill()
         frame:Show()
     else
@@ -668,7 +699,8 @@ end
 -- and one up after a reload, or put on you by another player, shows.
 local function CheckBuffs()
     -- Classic reads buffs in combat too, so a shield that breaks early ends at once.
-    if (InCombatLockdown() and not PlainClient()) or type(C_UnitAuras) ~= "table"
+    -- Under an aura restriction the reads find nothing, so nothing ends then.
+    if AurasHidden() or type(C_UnitAuras) ~= "table"
         or type(C_UnitAuras.GetAuraDataBySpellName) ~= "function" then
         return
     end
@@ -1149,6 +1181,9 @@ events:SetScript("OnEvent", function(_, event, ...)
             ShieldDisplay.ApplyBreakSound()
         end
     elseif event == "ADDON_RESTRICTION_STATE_CHANGED" then
+        -- At a restriction's end the buffs are read again.
+        CheckBuffs()
+        ShieldDisplay.Refresh()
         if shield.deferred and not EncounterRestricted() then
             ShieldDisplay.ApplyBreakSound()
         end
@@ -1269,6 +1304,8 @@ function ShieldDisplay.ReportDebug(report)
     end
     Report(string.format("UnitGetTotalAbsorbs=%s UnitHealthMax=%s AbbreviateNumbers=%s combat=%s",
         type(UnitGetTotalAbsorbs), type(UnitHealthMax), type(AbbreviateNumbers), tostring(InCombatLockdown())))
+    local restriction = AuraRestriction()
+    Report("auraRestriction=" .. tostring(restriction) .. " aurasHidden=" .. tostring(AurasHidden()))
     local copies = {}
     for _, entry in ipairs(registry.copies) do
         copies[#copies + 1] = entry.addon .. " v" .. entry.version .. (entry.eligible and " (running)" or "")
