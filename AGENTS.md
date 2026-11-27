@@ -167,6 +167,59 @@ Forever.
   and Icon size, and Reset size for all three; labels carry no "(%)", since
   the values show the % sign. While another AddOn draws the
   ring, a greyed slider of DSU's own keeps the saved size.
+- The shield settings section (DSU 1.6.0; John, 2026-11-26: class AddOns
+  "should surface every setting in the wrapped addon's settings, and just
+  pass-through the setting to the wrapped addon"; 2026-11-27: "Fix the
+  settings delegation in MTF and WTF"): Options.lua's `BuildShieldSection`
+  draws every row above, on DSU's page and on a host's page, through Dyre's
+  Toolkit 2.17.0's settings sections (key `shield`; Toolkit AGENTS.md
+  "Settings sections"). Core registers it at ADDON_LOADED, after LoadDB (a
+  host builds its page at its own PLAYER_LOGIN, which can come first). Every
+  variable goes through `ctx.variable`: prefixed (`DYRE_<HOST>__`) on a host
+  page, as named on DSU's (`OwnSettingsContext`). Settings are read only in
+  get, set, and predicates. Sizes: with the ring a widget, the toolkit's
+  `AddWidgetSettings` (on a host page with `opts.variable`, sections version
+  2); with no widget yet on a host page (its login came first), or a version
+  1 toolkit, `AddHostSizes`: the same three sliders, the toolkit's variable
+  names prefixed, and Reset size, writing through the widget once it exists,
+  else the saved sizes repaired with `SanitizeScale`. The display is the same
+  for every class, so `ctx.class` and `ctx.filter` change nothing. The build
+  returns false (the host shows its link) without the Settings API, before
+  the saved settings load, or after DSU's login found it cannot run. Not in
+  the section: the "Procs moved" link and "Unlock to move it", which belong
+  to DSU's page. Without sections (a toolkit older than 2.17.0), DSU's page is
+  as before. Not confirmed in client.
+- One name (John, 2026-11-27: "the same name used consistently everywhere"):
+  "Shield display" (`SECTION_TITLE`) is the switch on DSU's page and on a
+  host's top page, and the section's registered title, which hosts read with
+  `SettingsSectionTitle` for their sub-page. DSU's page title stays
+  "Dyre's Shields Up" (the AddOn).
+- Parts and greying (sections version 3; John, 2026-11-27, from his test of
+  MTF's Shield page: "when the top-level is off, the settings that are
+  controlling a disabled feature should be disabled too. Also, the top-level
+  disable for each section should be on the top-level MTF panel"):
+  `ctx.part` "master" draws "Shield display" alone (a host's top page),
+  "rest" every other row (the host's Shield page), "all" (or none, before
+  version 3) both. A row is greyed while DSU does not draw the ring or any
+  switch above it is off (`Allowed` with `UNDER_DISPLAY`, `UNDER_SOUND`): the
+  whole chain is checked in each row's modify predicate, so it also works on
+  a host's Shield page where "Shield display" is on another page. The Sound
+  dropdown keeps `SetParentInitializer` to its switch (always on the same
+  page). The toolkit's sliders and Reset get the same check through
+  `AddWidgetSettings` `opts.modify` (ignored before version 3); DSU's own
+  host sliders and Reset (`AddHostSizes`) add it themselves. The greying
+  applies on every toolkit; only the sliders from `AddWidgetSettings` need
+  version 3 for it.
+- Watching (Toolkit 2.17.0 `WatchSettings`, found by DBR): Blizzard checks a
+  row's modify predicates again only when its direct parent's setting changes
+  (Blizzard_SettingControls.lua 297-302), so a row greyed by a switch that is
+  not its parent would change only when the page draws again. Each greyed row
+  watches its switches' variables through `ctx.variable` (`Watch`, the
+  initializer's own `AddEvaluateStateCVar`): "Shield display" for every row
+  under it, and the sound switch too for Sound; `AddWidgetSettings` gets
+  `opts.watch`. On a host's Shield page the watched "Shield display" is the
+  top page's, under the same prefix. Feature-tested; without it, rows grey
+  when the page draws again.
 - Dyre's Toolkit 2.0 (contract 2) is required (author: "all the widget layout,
   snapping, modifier key move rules, etc., centralized in Dyre's Tools"):
   `## OptionalDeps: DyresToolkit` (the family rule, Dyre's Toolkit AGENTS.md

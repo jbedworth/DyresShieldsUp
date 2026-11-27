@@ -164,8 +164,7 @@ function DSU.ShownElsewhere()
     if DSU.ShieldDisplay.IsOwner() then
         return false
     end
-    DSU.Report("The shield display is shown by " .. tostring(DSU.ShieldDisplay.OwnerAddOn())
-        .. "; use its settings for it.")
+    DSU.Report(DSU.ShieldDisplay.ShownByText(DSU.ShieldDisplay.OwnerAddOn()))
     return true
 end
 
@@ -316,6 +315,12 @@ events:SetScript("OnEvent", function(self, event, loadedName)
         if loadedName == addonName then
             self:UnregisterEvent("ADDON_LOADED")
             LoadDB()
+            -- Mage Tools Forever's and Warlock Tools Forever's Shield pages
+            -- show DSU's shield settings (Toolkit 2.17.0); they build their
+            -- pages at their own PLAYER_LOGIN, which can come before DSU's.
+            if type(DSU.RegisterSettingsSection) == "function" then
+                DSU.RegisterSettingsSection()
+            end
         end
         return
     end
@@ -325,6 +330,8 @@ events:SetScript("OnEvent", function(self, event, loadedName)
         LoadDB()
     end
     DSU.available = available
+    -- From here a host page's shield section knows whether DSU runs.
+    DSU.loginDone = true
     ReportLoaded(available)
     local conflict = FindSlashConflict()
     if conflict then

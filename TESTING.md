@@ -95,6 +95,17 @@ carry over:
 - [ ] Without Dyre's Sounds, the display works and turning the break sound on
       says once in chat to install it; with it, the sound list shows Dyre's
       Picks and the imp sounds, and the chosen sound plays when a shield ends.
+- [ ] Shield section (Toolkit 2.17.0, with an MTF or WTF that draws it): on
+      the host's Shield page, every DSU setting shows (the three switches,
+      the sound, the three sizes, Reset size) with no Lua error; each change
+      there moves the ring at once and shows on DSU's own page, and the
+      other way round. With the toolkit older than 2.17.0, the host shows its
+      link and DSU's page is unchanged.
+- [ ] Greying (Toolkit 2.17.0, sections version 3): "Shield display" sits on
+      the host's top page, the other rows on its Shield page. With "Shield
+      display" off, every row under it (and Reset size) is greyed, on DSU's
+      page and on the host's Shield page; Sound is greyed also while "Sound
+      when a shield ends" is off. Turned on again, they work at once.
 - [ ] Settings: the switches, number, size slider, and break sound work;
       "Unlock to move it" and `/dsu unlock` show the full sample to drag;
       unticking or `/dsu lock` locks it, and the switch and commands stay in

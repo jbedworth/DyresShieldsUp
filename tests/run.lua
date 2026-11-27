@@ -265,6 +265,11 @@ local function fixture(options)
             end
             -- The toolkit's AddDefaultTick wraps InitFrame (and saves its range).
             function object:InitFrame() end
+            -- The variables whose change makes the row check its predicates again.
+            object.evaluateVariables = {}
+            function object:AddEvaluateStateCVar(variable)
+                self.evaluateVariables[#self.evaluateVariables + 1] = variable
+            end
             object.shownPredicates = {}
             function object:AddShownPredicate(predicate)
                 self.shownPredicates[#self.shownPredicates + 1] = predicate
@@ -436,7 +441,10 @@ local function fixture(options)
     env.IsControlKeyDown = function() return state.ctrl == true end
     env.CreateSettingsButtonInitializer = function(name, buttonText, onClick, tooltip)
         local button = {button = true, name = name, buttonText = buttonText, onClick = onClick,
-            tooltip = tooltip, modifyPredicates = {}}
+            tooltip = tooltip, modifyPredicates = {}, evaluateVariables = {}}
+        function button:AddEvaluateStateCVar(variable)
+            self.evaluateVariables[#self.evaluateVariables + 1] = variable
+        end
         function button:AddModifyPredicate(predicate)
             self.modifyPredicates[#self.modifyPredicates + 1] = predicate
         end
@@ -481,13 +489,34 @@ local function fixture(options)
             chunk("DyresToolkit", state.toolkitNS)
         end
         state.toolkit = env.DyresToolkit
+        -- The toolkit's family check lives in HealthBars.lua, which these
+        -- tests do not load: the same rule, the TOC's ## Group.
+        state.toolkitNS.InFamily = state.toolkitNS.InFamily or function(addon)
+            return env.C_AddOns.GetAddOnMetadata(addon, "Group") == "DyresToolkit"
+        end
+        -- options.noSections: a Toolkit older than 2.17.0 (no settings sections).
+        if options.noSections then
+            env.DyresToolkit.SETTINGS_SECTIONS_VERSION = nil
+            env.DyresToolkit.RegisterSettingsSection, env.DyresToolkit.AddSettingsSection = nil, nil
+            env.DyresToolkit.OwnSettingsContext = nil
+        end
         if options.noProfiles then
             -- A toolkit from before 2.10.0.
             env.DyresToolkit.RegisterProfilePart, env.DyresToolkit.ReapplyWidgets = nil, nil
         end
         -- options.noLink: a Toolkit older than 2.3.0 (no AddSettingsLink).
+        -- Toolkit 2.16.0 calls it itself at its PLAYER_LOGIN, so it goes
+        -- after the toolkit's frames have handled that and before DSU's.
         if options.noLink then
-            env.DyresToolkit.AddSettingsLink = nil
+            for _, frame in ipairs(state.frames) do
+                local onEvent = frame.scripts.OnEvent
+                if onEvent then
+                    frame.scripts.OnEvent = function(self, event, ...)
+                        onEvent(self, event, ...)
+                        if event == "PLAYER_LOGIN" then env.DyresToolkit.AddSettingsLink = nil end
+                    end
+                end
+            end
         end
         -- options.noTick: a Toolkit older than 2.2.0 (no AddDefaultTick).
         if options.noTick then
@@ -602,13 +631,13 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.5.3 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.6.0 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
 end)
 test("the welcome follows Dyre's Toolkit's switch; problems always show", function()
-    local BANNER = "DSU: Dyre's Shields Up 1.5.3 by Dyre"
+    local BANNER = "DSU: Dyre's Shields Up 1.6.0 by Dyre"
     -- Shown: no toolkit (then the install line follows), a toolkit without
     -- ShowWelcome, and ShowWelcome true.
     equal(fixture({noToolkit = true}).messages[1], BANNER, "no toolkit")
@@ -630,7 +659,7 @@ test("the welcome follows Dyre's Toolkit's switch; problems always show", functi
     contains(old.last(), "needs Dyre's Toolkit 2.0")
     local copied = fixture({welcome = false, class = "MAGE",
         shieldCopies = {{addon = "MageToolsForever", before = true, runs = true}}})
-    equal(copied.said("The shield display is shown by MageToolsForever; use its settings for it."), true,
+    equal(copied.said("Mage Tools Forever shows the shield display right now, so change it there."), true,
         "other lines are not welcome lines")
 end)
 test("the TOC loads the toolkit first and nests under it in the AddOn list", function()
@@ -1639,22 +1668,31 @@ test("with Mage Tools Forever running too, only one ring shows, and DSU says whe
     equal(state.suf.ShieldDisplay.IsOwner(), false, "the first registered wins a tie")
     equal(state.ring(), nil, "DSU draws nothing")
     equal(state.copies.MageToolsForever.ShieldDisplay.frame ~= nil, true)
-    equal(state.said("The shield display is shown by MageToolsForever; use its settings for it."), true)
+    equal(state.said("Mage Tools Forever shows the shield display right now, so change it there."), true,
+        "the AddOn's title, not its folder")
     state.clear()
     state.slash("unlock")
-    contains(state.last(), "shown by MageToolsForever")
+    contains(state.last(), "Mage Tools Forever shows the shield display")
     state.slash("options")
-    contains(state.last(), "shown by MageToolsForever")
+    contains(state.last(), "Mage Tools Forever shows the shield display")
     local page = state.categories[PAGE]
     for _, initializer in ipairs(page.initializers) do
         equal(initializer.modifyPredicates[1](), false, initializer.setting.variable .. " is greyed out")
-        contains(initializer.tooltip, "Mage Tools Forever draws the shield display, so use its settings for it.")
+        contains(initializer.tooltip, "Mage Tools Forever shows the shield display right now, so change it there.")
     end
-    local alone = fixture()
+    -- Every switch on, so only the owner check is left.
+    local alone = fixture({db = {shield = {breakSound = true}}})
     for _, initializer in ipairs(alone.categories[PAGE].initializers) do
         local predicate = initializer.modifyPredicates[1]
         equal(predicate == nil or predicate(), true, "not greyed while DSU draws the ring")
-        equal(initializer.tooltip:find("draws the shield display", 1, true), nil)
+        equal(initializer.tooltip:find("shows the shield display", 1, true), nil)
+        -- Player text only: no other AddOn named, no version history, and one
+        -- sentence (the Sound list also says what to install when it is empty).
+        local sentences = select(2, initializer.tooltip:gsub("%.%s", "")) + 1
+        equal(sentences <= (initializer.setting.name == "Sound" and 2 or 1), true,
+            initializer.setting.name .. ": " .. initializer.tooltip)
+        equal(initializer.tooltip:find("Tools Forever", 1, true), nil, initializer.setting.name)
+        equal(initializer.tooltip:find("%d+%.%d+%.%d+"), nil, initializer.setting.name)
     end
 end)
 test("the kept display size slider has the gold default mark; an older Toolkit gives none", function()
@@ -1688,7 +1726,11 @@ test("a newer copy elsewhere takes over; DSU takes over from an older one", func
     local older = fixture({shieldCopies = {{addon = "WarlockToolsForever", runs = true, version = 2}}})
     equal(older.suf.ShieldDisplay.IsOwner(), true)
     equal(older.ring() ~= nil, true)
-    contains(older.copies.WarlockToolsForever.said[1], "shown by DyresShieldsUp")
+    equal(older.copies.WarlockToolsForever.said[1],
+        "Dyre's Shields Up shows the shield display right now, so change it there.", "the title, not the folder")
+    -- With no readable title, the folder name.
+    equal(older.suf.ShieldDisplay.ShownByText("SomeOtherAddOn"),
+        "SomeOtherAddOn shows the shield display right now, so change it there.")
 end)
 
 -- Proc overlays (Phase 0: the catalog moved here from MTF and WTF) ------------------
@@ -1850,6 +1892,278 @@ test("procs moved: a Toolkit without AddSettingsLink gets no row, and the line s
     equal(saidCount(state, MOVED_LINE), 1)
 end)
 
+-- Settings sections (Toolkit 2.17.0) ---------------------------------------------
+
+local HOST_PREFIX = "DYRE_MAGETOOLSFOREVER__"
+
+-- A host's Shield page (Mage Tools Forever's), with DSU's shield section on it.
+local function hostPage(state)
+    local page, layout = state.env.Settings.RegisterVerticalLayoutSubcategory(state.categories[PAGE].parent
+        or state.newCategory("Dyre's AddOns"), "Mage Tools Forever: Shield")
+    local drawn = state.toolkit.AddSettingsSection(page, layout,
+        {addon = ADDON, key = "shield", host = "MageToolsForever"})
+    return page, drawn
+end
+
+-- The sections test needs the toolkit that has them (../DyresToolkit 2.17.0);
+-- the vendored copy is older, and DSU's page must then stay as it was.
+local function sectionsToolkit(state)
+    if (state.toolkit.SETTINGS_SECTIONS_VERSION or 0) >= 1 then return true end
+    io.write("# skipped: the loaded Dyre's Toolkit has no settings sections\n")
+    return false
+end
+
+test("DSU registers its shield section once its saved settings are repaired", function()
+    local state = fixture()
+    if not sectionsToolkit(state) then return end
+    equal(table.concat(state.toolkit.SettingsSections(ADDON), ","), "shield")
+    -- One name everywhere: the title hosts read is the switch's label.
+    if type(state.toolkit.SettingsSectionTitle) == "function" then
+        equal(state.toolkit.SettingsSectionTitle(ADDON, "shield"), "Shield display")
+    end
+    equal(state.settings.DSU_SHIELD_ENABLED.name, "Shield display")
+end)
+
+test("a host page shows every shield setting, named with the host's prefix", function()
+    local state = fixture()
+    if not sectionsToolkit(state) then return end
+    local page, drawn = hostPage(state)
+    equal(drawn, "rows")
+    local names = {}
+    for _, initializer in ipairs(page.initializers) do
+        local variable = initializer.setting.variable
+        equal(variable:sub(1, #HOST_PREFIX), HOST_PREFIX, "prefixed: " .. variable)
+        names[#names + 1] = initializer.setting.name
+    end
+    equal(table.concat(names, ", "),
+        "Shield display, Show the absorb amount, Sound when a shield ends, Sound, Display size, Text size, Icon size")
+    equal(#page.buttons, 1, "Reset size")
+    equal(page.buttons[1].buttonText, "Reset size")
+    -- DSU's own page keeps its variables as named.
+    for _, variable in ipairs({"DSU_SHIELD_ENABLED", "DSU_SHIELD_NUMBER", "DSU_SHIELD_BREAK_SOUND",
+            "DSU_SHIELD_BREAK_SOUND_CHOICE", WIDGET_SCALE}) do
+        equal(state.settings[variable].category, state.categories[PAGE], variable .. " on DSU's page")
+    end
+end)
+
+test("a host page's rows write DSU's live settings, and DSU's page shows the change", function()
+    local state = fixture()
+    if not sectionsToolkit(state) then return end
+    hostPage(state)
+    local ring = state.ring()
+    state.settings[HOST_PREFIX .. "DSU_SHIELD_NUMBER"]:SetValue(false)
+    equal(state.suf.db.shield.number, false)
+    equal(state.settings.DSU_SHIELD_NUMBER:GetValue(), false, "the same setting on DSU's page")
+    state.settings[HOST_PREFIX .. WIDGET_SCALE]:SetValue(83)
+    equal(state.suf.db.shield.scale, 85, "stepped by the widget")
+    equal(ring.scale, 0.85)
+    equal(state.settings[WIDGET_SCALE]:GetValue(), 85)
+    state.settings[HOST_PREFIX .. "DYRE_DYRESSHIELDSUP_SHIELD_TEXTSCALE"]:SetValue(130)
+    equal(state.suf.db.shield.textScale, 130)
+    state.settings[HOST_PREFIX .. "DSU_SHIELD_BREAK_SOUND"]:SetValue(true)
+    equal(state.suf.db.shield.breakSound, true)
+    equal(table.concat(state.soundsPlayed, ","), "fadingslow", "turning it on plays it once, as on DSU's page")
+    state.settings.DSU_SHIELD_ENABLED:SetValue(false)
+    equal(state.settings[HOST_PREFIX .. "DSU_SHIELD_ENABLED"]:GetValue(), false, "and back")
+    equal(ring.shown, false)
+    state.categories["Mage Tools Forever: Shield"].buttons[1].onClick()
+    equal(state.suf.db.shield.scale, 100, "Reset size")
+    equal(state.suf.db.shield.textScale, 100)
+end)
+
+test("a host page built before DSU's login has the same rows and writes the saved sizes", function()
+    local state = fixture()
+    if not sectionsToolkit(state) then return end
+    local widget = state.suf.shieldWidget
+    -- As before DSU's PLAYER_LOGIN: no ring widget yet.
+    state.suf.shieldWidget = nil
+    local page = hostPage(state)
+    local names = {}
+    for _, initializer in ipairs(page.initializers) do names[#names + 1] = initializer.setting.variable end
+    equal(table.concat(names, ","), table.concat({HOST_PREFIX .. "DSU_SHIELD_ENABLED",
+        HOST_PREFIX .. "DSU_SHIELD_NUMBER", HOST_PREFIX .. "DSU_SHIELD_BREAK_SOUND",
+        HOST_PREFIX .. "DSU_SHIELD_BREAK_SOUND_CHOICE", HOST_PREFIX .. WIDGET_SCALE,
+        HOST_PREFIX .. "DYRE_DYRESSHIELDSUP_SHIELD_TEXTSCALE", HOST_PREFIX .. "DYRE_DYRESSHIELDSUP_SHIELD_ICONSCALE"},
+        ","), "the toolkit's names, prefixed")
+    local icons = state.settings[HOST_PREFIX .. "DYRE_DYRESSHIELDSUP_SHIELD_ICONSCALE"]
+    icons:SetValue(999)
+    equal(state.suf.db.shield.iconScale, 150, "clamped as on load")
+    equal(icons:GetValue(), 150)
+    page.buttons[1].onClick()
+    equal(state.suf.db.shield.iconScale, 100, "Reset size")
+    -- Once the ring is a widget, the same rows go through it.
+    state.suf.shieldWidget = widget
+    state.settings[HOST_PREFIX .. WIDGET_SCALE]:SetValue(120)
+    equal(state.ring().scale, 1.2)
+end)
+
+test("when DSU cannot run, a host page gets the toolkit's link instead of the rows", function()
+    local state = fixture()
+    if not sectionsToolkit(state) then return end
+    state.suf.available = false
+    local page, drawn = hostPage(state)
+    equal(drawn == "rows", false)
+    for _, initializer in ipairs(page.initializers) do
+        equal(initializer.setting and initializer.setting.variable:find("DSU_SHIELD", 1, true), nil, "no DSU rows")
+    end
+end)
+
+test("with a Toolkit older than 2.17.0, DSU's page is as before", function()
+    local state = fixture({noSections = true})
+    for _, variable in ipairs({"DSU_SHIELD_ENABLED", "DSU_SHIELD_NUMBER", "DSU_SHIELD_BREAK_SOUND",
+            "DSU_SHIELD_BREAK_SOUND_CHOICE", WIDGET_SCALE}) do
+        equal(state.settings[variable].category, state.categories[PAGE], variable)
+    end
+    state.settings.DSU_SHIELD_NUMBER:SetValue(false)
+    equal(state.suf.db.shield.number, false)
+end)
+
+-- Greying and parts (sections version 3) ------------------------------------------
+
+-- Whether a row can be changed: every modify predicate passes.
+local function changeable(initializer)
+    for _, predicate in ipairs(initializer.modifyPredicates or {}) do
+        if not predicate() then return false end
+    end
+    return true
+end
+
+local function rowsByName(page)
+    local rows = {}
+    for _, initializer in ipairs(page.initializers) do rows[initializer.setting.name] = initializer end
+    return rows
+end
+
+test("with Shield display off, every row under it is greyed; Sound also needs its switch", function()
+    local state = fixture()
+    local page = state.categories[PAGE]
+    local rows = rowsByName(page)
+    local shield = state.suf.db.shield
+    equal(changeable(rows["Shield display"]), true)
+    equal(changeable(rows["Show the absorb amount"]), true)
+    equal(changeable(rows["Sound when a shield ends"]), true)
+    equal(changeable(rows["Sound"]), false, "its switch is off")
+    shield.breakSound = true
+    equal(changeable(rows["Sound"]), true)
+    shield.enabled = false
+    equal(changeable(rows["Shield display"]), true, "the top switch stays changeable")
+    for _, name in ipairs({"Show the absorb amount", "Sound when a shield ends", "Sound"}) do
+        equal(changeable(rows[name]), false, name .. " greyed")
+    end
+    if (state.toolkit.SETTINGS_SECTIONS_VERSION or 0) >= 3 then
+        for _, name in ipairs({"Display size", "Text size", "Icon size"}) do
+            equal(changeable(rows[name]), false, name .. " greyed")
+        end
+        equal(changeable(page.buttons[1]), false, "Reset size greyed")
+        shield.enabled = true
+        equal(changeable(rows["Display size"]), true)
+        equal(changeable(page.buttons[1]), true)
+    end
+end)
+
+-- The variables a row watches, joined.
+local function watched(initializer)
+    return table.concat(initializer.evaluateVariables or {}, ",")
+end
+
+test("every greyed row watches its switches, so it greys when one is clicked", function()
+    local state = fixture()
+    if type(state.toolkit.WatchSettings) ~= "function" then
+        io.write("# skipped: the loaded Dyre's Toolkit has no WatchSettings\n")
+        return
+    end
+    local page = state.categories[PAGE]
+    local rows = rowsByName(page)
+    equal(watched(rows["Shield display"]), "", "the top switch watches nothing")
+    for _, name in ipairs({"Show the absorb amount", "Sound when a shield ends", "Display size", "Text size",
+            "Icon size"}) do
+        equal(watched(rows[name]), "DSU_SHIELD_ENABLED", name)
+    end
+    equal(watched(rows["Sound"]), "DSU_SHIELD_ENABLED,DSU_SHIELD_BREAK_SOUND")
+    equal(watched(page.buttons[1]), "DSU_SHIELD_ENABLED", "Reset size")
+end)
+
+local function hostPart(state, part, name)
+    local page, layout = state.env.Settings.RegisterVerticalLayoutSubcategory(state.newCategory("Mage Tools Forever"),
+        name)
+    local drawn = state.toolkit.AddSettingsSection(page, layout,
+        {addon = ADDON, key = "shield", host = "MageToolsForever", part = part})
+    return page, drawn
+end
+
+test("a host's top page gets Shield display alone, and its Shield page the rest, greyed by it", function()
+    local state = fixture({db = {shield = {breakSound = true}}})
+    if (state.toolkit.SETTINGS_SECTIONS_VERSION or 0) < 3 then
+        io.write("# skipped: the loaded Dyre's Toolkit has no section parts\n")
+        return
+    end
+    local top, drawnTop = hostPart(state, "master", "MTF top")
+    equal(drawnTop, "rows")
+    equal(#top.initializers, 1)
+    equal(top.initializers[1].setting.variable, HOST_PREFIX .. "DSU_SHIELD_ENABLED")
+    equal(top.initializers[1].setting.name, "Shield display", "the section's one name")
+    equal(#top.buttons, 0)
+    local rest, drawnRest = hostPart(state, "rest", "MTF Shield")
+    equal(drawnRest, "rows")
+    local rows = rowsByName(rest)
+    equal(rows["Shield display"], nil, "not on the Shield page")
+    equal(#rest.initializers, 6, "the absorb amount, the sound switch and choice, three sizes")
+    for _, initializer in ipairs(rest.initializers) do equal(changeable(initializer), true) end
+    equal(changeable(rest.buttons[1]), true)
+    -- Turned off on the top page: every row on the Shield page is greyed.
+    top.initializers[1].setting:SetValue(false)
+    equal(state.suf.db.shield.enabled, false)
+    for _, initializer in ipairs(rest.initializers) do
+        equal(changeable(initializer), false, initializer.setting.name .. " greyed")
+    end
+    equal(changeable(rest.buttons[1]), false, "Reset size greyed")
+    -- Each row watches the top page's switch, under the host's prefix.
+    if type(state.toolkit.WatchSettings) == "function" then
+        for _, initializer in ipairs(rest.initializers) do
+            local expected = initializer.setting.name == "Sound"
+                and HOST_PREFIX .. "DSU_SHIELD_ENABLED," .. HOST_PREFIX .. "DSU_SHIELD_BREAK_SOUND"
+                or HOST_PREFIX .. "DSU_SHIELD_ENABLED"
+            equal(watched(initializer), expected, initializer.setting.name)
+        end
+        equal(watched(rest.buttons[1]), HOST_PREFIX .. "DSU_SHIELD_ENABLED", "Reset size")
+    end
+end)
+
+test("a host's Shield page drawn before DSU's login greys its own sliders too", function()
+    local state = fixture()
+    if (state.toolkit.SETTINGS_SECTIONS_VERSION or 0) < 3 then
+        io.write("# skipped: the loaded Dyre's Toolkit has no section parts\n")
+        return
+    end
+    local widget = state.suf.shieldWidget
+    state.suf.shieldWidget = nil
+    local greyed = {}
+    local greyButtonLabel = state.toolkit.GreyButtonLabel
+    if greyButtonLabel then
+        state.toolkit.GreyButtonLabel = function(initializer)
+            greyed[#greyed + 1] = initializer
+            return greyButtonLabel(initializer)
+        end
+    end
+    local rest = hostPart(state, "rest", "MTF Shield early")
+    state.toolkit.GreyButtonLabel = greyButtonLabel
+    state.suf.shieldWidget = widget
+    if greyButtonLabel then
+        equal(greyed[#greyed], rest.buttons[1], "Reset size's label greys with it")
+    end
+    state.suf.db.shield.enabled = false
+    local rows = rowsByName(rest)
+    for _, name in ipairs({"Display size", "Text size", "Icon size"}) do
+        equal(changeable(rows[name]), false, name .. " greyed")
+        if type(state.toolkit.WatchSettings) == "function" then
+            equal(watched(rows[name]), HOST_PREFIX .. "DSU_SHIELD_ENABLED", name .. " watches the switch")
+        end
+    end
+    equal(changeable(rest.buttons[1]), false, "Reset size greyed")
+    if type(state.toolkit.WatchSettings) == "function" then
+        equal(watched(rest.buttons[1]), HOST_PREFIX .. "DSU_SHIELD_ENABLED", "Reset size watches the switch")
+    end
+end)
 
 local failed = 0
 for index, entry in ipairs(tests) do

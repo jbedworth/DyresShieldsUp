@@ -87,6 +87,10 @@ Warlock's from Warlock Tools Forever) are copied once: place, sizes, the
 number, and the sound. DSU says so in chat. A character that already has DSU
 settings keeps them, and the other AddOn's own settings are left as they are.
 
+With Dyre's Toolkit 2.17.0 or newer, their Shield pages show every DSU
+setting too, as soon as they support it: a change there is the change on
+DSU's own page. Until then they link to DSU's page.
+
 Older versions of Mage Tools Forever and Warlock Tools Forever ship the same
 display. Installed together, you still see one ring: the newest version
 among the AddOns running on your character draws it, and on the same version

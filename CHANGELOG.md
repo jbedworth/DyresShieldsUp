@@ -4,6 +4,17 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.6.0
+
+### Features
+
+- **Your shield settings on Mage Tools Forever's and Warlock Tools Forever's Shield pages.** With Dyre's Toolkit 2.17.0 or newer, those pages show every Dyre's Shields Up setting (the display, the absorb amount, the sound when a shield ends and its choice, Display size, Text size, Icon size, and Reset size), not only a link. A change there is the same change on DSU's own page, which keeps them all too. Each AddOn shows them once it supports this; until then, its link to DSU's page stays. On those AddOns' main page, the **Shield display** switch sits with their other main switches, and their Shield page has the rest.
+- While **Shield display** is off, the settings under it are greyed out (the absorb amount, the sound, the sizes, and Reset size), on DSU's page and on Mage Tools Forever's and Warlock Tools Forever's. The **Sound** list also needs **Sound when a shield ends** on.
+
+### Other changes
+
+- Clearer tooltips on DSU's settings: they say what each setting does, with no old notes about Mage Tools Forever and Warlock Tools Forever. The Sound list's tooltip says to install Dyre's Sounds when the list is empty.
+
 ## 1.5.3
 
 ### Fixes

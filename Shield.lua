@@ -232,6 +232,27 @@ function ShieldDisplay.OwnerAddOn()
     return owner and owner.addon
 end
 
+-- An AddOn's title for players (its TOC Title), else its folder name.
+local function AddOnTitle(addon)
+    local title
+    if type(addon) == "string" and type(C_AddOns) == "table" and type(C_AddOns.GetAddOnMetadata) == "function" then
+        title = C_AddOns.GetAddOnMetadata(addon, "Title")
+    end
+    if type(title) ~= "string" or title == "" then
+        return tostring(addon)
+    end
+    return title
+end
+
+-- The chat line and tooltip note when another AddOn draws the ring.
+function ShieldDisplay.ShownByText(addon)
+    return AddOnTitle(addon) .. " shows the shield display right now, so change it there."
+end
+
+function ShieldDisplay.OwnerTitle()
+    return AddOnTitle(ShieldDisplay.OwnerAddOn())
+end
+
 -- The display's size in percent of its default.
 ShieldDisplay.SCALE_MIN = 50
 ShieldDisplay.SCALE_MAX = 150
@@ -1259,8 +1280,7 @@ local function Elect()
             end
             if entry ~= owner and not entry.reported then
                 entry.reported = true
-                entry.report("The shield display is shown by " .. tostring(owner.addon)
-                    .. "; use its settings for it.")
+                entry.report(ShieldDisplay.ShownByText(owner.addon))
             end
         end
     end
