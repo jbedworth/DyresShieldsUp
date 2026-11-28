@@ -136,6 +136,10 @@ carry over:
       toolkit and none from DSU; the shield sample and the toolkit's gold
       outline show and the display takes the mouse; locking any way hides
       them and clicks pass through again.
+- [ ] Unlocked, the outline's label reads "DSU: Shields" (Toolkit 2.20.0),
+      with no move instructions, and the sample shows 1234 under the crescent,
+      not "drag me"; pointing at the ring shows the instructions in a tooltip, and a ring dragged to a screen edge keeps its label
+      on screen.
 - [ ] The shield display dropped near another Dyre's frame snaps beside it,
       snaps to the grid with "Snap to the grid" on, moves with a
       Shift-dragged group, and keeps its place after `/reload`; `/dsu reset`

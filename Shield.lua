@@ -126,10 +126,11 @@ local GATE_TEXTURE = "Interface\\Buttons\\WHITE8X8"
 -- Seconds after your shield cast during which an absorb change is that shield
 -- landing, so its total is the shield's size.
 local CAPTURE_SECONDS = 0.5
--- While unlocked the outer crescent shows full, with a label for the number,
--- so its shape and place are plain (a part-filled sample looked broken).
+-- While unlocked the outer crescent shows full, with a sample number, so its
+-- shape and place are plain (a part-filled sample looked broken) and Text
+-- size shows. No "drag me" (John, 2026-11-28): the outline's tooltip says how.
 local SAMPLE_FILL = 1
-local SAMPLE_TEXT = "drag me"
+local SAMPLE_AMOUNT = 1234
 -- Seconds past a shield's end before the ring hides, for timing slack.
 local END_SLACK = 0.2
 -- How long an absorb MTF cannot name shows after it changes: the longest
@@ -523,7 +524,7 @@ local function UpdateFill()
         frame.bar:Show()
         frame.bar:SetMinMaxValues(0, 1)
         frame.bar:SetValue(SAMPLE_FILL)
-        frame.text:SetText(SAMPLE_TEXT)
+        frame.text:SetText(Config().number and SAMPLE_AMOUNT or "")
         return
     end
     local absorb = UnitGetTotalAbsorbs("player")
@@ -1142,14 +1143,14 @@ local function CreateRing()
         local point, _, relativePoint, x, y = self:GetPoint()
         Config().position = {point = point, relativePoint = relativePoint, x = x, y = y}
     end)
-    -- While unlocked: a gold outline and a hint, so the sample reads as movable.
+    -- While unlocked: a gold outline, and the host's hint if it gives one.
     frame.mover = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     frame.mover:SetAllPoints()
     frame.mover:SetBackdrop({edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12})
     frame.mover:SetBackdropBorderColor(1, 0.82, 0)
     frame.mover.hint = frame.mover:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.mover.hint:SetPoint("BOTTOM", frame.mover, "TOP", 0, 4)
-    frame.mover.hint:SetText(host.unlockHint or "Drag to move")
+    frame.mover.hint:SetText(host.unlockHint or "")
     frame.mover:Hide()
     frame:Hide()
     -- Sized before it is placed, so a saved place (in the ring's own scaled

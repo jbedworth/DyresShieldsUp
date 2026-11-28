@@ -21,6 +21,11 @@ local TOOLKIT_FUNCTIONS = {"RegisterAddOn", "RegisterSettingsCategory", "IsLocke
 local TOOLKIT_MISSING = "Dyre's Shields Up needs Dyre's Toolkit 2.0 or later: install or update it from "
     .. "CurseForge. DSU stays off until then."
 local WIDGET_KEY = "shield"
+-- The ring's name on its outline in layout mode (the hint; John, 2026-11-28:
+-- "DSU: Shields would be better"). Toolkit 2.20.0 shows "DSU: Shields" and
+-- moves the instructions to a tooltip; an older toolkit shows its prefix and
+-- the hint, "Shields Up: Shields", with no "drag to move".
+local WIDGET_NAME = "Shields"
 -- Mage Tools Forever and Warlock Tools Forever drew this display before DSU
 -- drew it for everyone (author-approved, 1.2.0): a character's first DSU login
 -- copies its class's AddOn's shield settings once, so no layout resets. By
@@ -214,6 +219,7 @@ local function AdoptRing(frame)
         addon = addonName,
         key = WIDGET_KEY,
         title = Metadata("Title") or DEFAULT_TITLE,
+        hint = WIDGET_NAME,
         frame = frame,
         store = DSU.db.shield,
         width = display.SIZE,

@@ -4,6 +4,12 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.6.2
+
+### Other changes
+
+- When you unlock your frames, the shield display's label now just says "DSU: Shields", and the "drag me" on the display is gone. It shows a sample number instead, so you can see where the number goes and how big it is. With the latest Dyre's Toolkit, point at the display to see how to move it.
+
 ## 1.6.1
 
 ### Fixes

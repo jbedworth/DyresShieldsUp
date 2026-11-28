@@ -236,7 +236,12 @@ Forever.
   update it, naming only CurseForge. The display's `layout.adopt` makes the
   ring a widget (`CreateWidget`: key `shield`, store `DyresShieldsUpDB.shield`
   with its `position` and `scale` keys as saved before, `sizes.scale`, mouse
-  "unlocked", sizes `scale`, `textScale`, and `iconScale`); `onLayout`
+  "unlocked", sizes `scale`, `textScale`, and `iconScale`, hint
+  "Shields", so the outline's label is "DSU: Shields" with toolkit 2.20.0,
+  which moves the instructions to a tooltip, and "Shields Up: Shields" with an
+  older one; John, 2026-11-28: "DSU: Shields would be better, and you don't
+  need the 'drag me' on the widget", so the unlocked sample shows the number
+  1234, not "drag me"); `onLayout`
   refreshes the display, which re-scales the number and the icons; `onUnlock`
   sets `locked` and refreshes the display, which shows the sample. No widget opacity: the ring's inner frame's alpha is the secret
   absorb, and the widget's own alpha is never set. `/dsu unlock` and `lock`

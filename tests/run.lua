@@ -631,13 +631,13 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.6.1 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.6.2 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
 end)
 test("the welcome follows Dyre's Toolkit's switch; problems always show", function()
-    local BANNER = "DSU: Dyre's Shields Up 1.6.1 by Dyre"
+    local BANNER = "DSU: Dyre's Shields Up 1.6.2 by Dyre"
     -- Shown: no toolkit (then the install line follows), a toolkit without
     -- ShowWelcome, and ShowWelcome true.
     equal(fixture({noToolkit = true}).messages[1], BANNER, "no toolkit")
@@ -1011,10 +1011,14 @@ test("/dsu unlock shows the sample and outline to drag; /dsu lock locks every Dy
     equal(state.suf.db.shield.locked, false)
     equal(ring.shown, true)
     equal(ring.mouse, true)
-    equal(ring.text.text, "drag me")
+    equal(ring.text.text, 1234, "a sample number, no \"drag me\"")
     equal(ring.sample.shown, true)
     equal(ring.dyre.mover.shown, true, "the toolkit's gold outline")
-    contains(ring.dyre.mover.hint.text, "Dyre's Shields Up")
+    -- The outline's label: the AddOn's short form and "Shields" (2.20.0), or
+    -- an older toolkit's prefix and the hint; never the move instructions.
+    local label = ring.dyre.mover.hint.text
+    equal(label, state.toolkit.OUTLINE_LABEL_VERSION and "DSU: Shields" or "Shields Up: Shields")
+    equal(label:lower():find("drag", 1, true), nil, "no move instructions on the label: " .. label)
     equal(ring.mover, nil, "no outline of the display's own")
     for _, message in ipairs(state.messages) do
         equal(message:find("^DSU:"), nil, "only the toolkit's line: " .. message)
