@@ -153,6 +153,17 @@ local function SetSize(name, value)
     DSU.RefreshShield()
 end
 
+-- The Reset size row's name on a host page (John, 2026-11-27: one name per
+-- section, as WTF's Crowd Control page): "Shield display" with a toolkit
+-- that can rename the row (WIDGET_RESET_NAME); else the AddOn's title, as
+-- the toolkit's own row says.
+local function HostResetName(toolkit)
+    if toolkit and toolkit.WIDGET_RESET_NAME then
+        return SECTION_TITLE
+    end
+    return TITLE
+end
+
 -- The three size sliders and "Reset size" on a host page drawn before DSU's
 -- PLAYER_LOGIN has made the ring a widget, or with a toolkit whose
 -- AddWidgetSettings cannot rename its variables (sections version 1). The
@@ -173,7 +184,8 @@ local function AddHostSizes(page, layout, ctx, display, note, watch)
     end
     if type(CreateSettingsButtonInitializer) == "function" and type(layout) == "table"
             and type(layout.AddInitializer) == "function" then
-        local reset = GreyUnlessOwner(CreateSettingsButtonInitializer(TITLE, "Reset size", function()
+        local reset = GreyUnlessOwner(CreateSettingsButtonInitializer(HostResetName(DSU.toolkit or DSU.Toolkit()),
+                "Reset size", function()
             for _, name in ipairs(SIZE_NAMES) do
                 SetSize(name, display.DEFAULT_SCALE)
             end
@@ -251,11 +263,14 @@ local function BuildShieldSection(page, layout, ctx)
     if DSU.shieldWidget and (ctx.own or renames) then
         -- The ring is a widget: the toolkit's size sliders (from the center,
         -- with their default marks) and "Reset size"; on a host page with
-        -- the host's prefix (opts.variable, sections version 2).
+        -- the host's prefix (opts.variable, sections version 2) and the
+        -- section's name on the Reset row (opts.resetName; an older toolkit
+        -- ignores it and names the row "Dyre's Shields Up").
         toolkit.AddWidgetSettings(page, layout, DSU.shieldWidget, {
             labels = {scale = SIZE_LABELS.scale},
             tooltips = SIZE_TOOLTIPS,
             resetTooltip = RESET_TOOLTIP,
+            resetName = not ctx.own and SECTION_TITLE or nil,
             variable = not ctx.own and ctx.variable or nil,
             -- Sections version 3; an older toolkit ignores it.
             modify = function() return Allowed(display, UNDER_DISPLAY) end,

@@ -631,13 +631,13 @@ test("texture paths follow the AddOn's folder", function()
 end)
 test("login prints the banner from the TOC and the ready hint", function()
     local state = fixture()
-    equal(state.messages[1], "DSU: Dyre's Shields Up 1.6.0 by Dyre")
+    equal(state.messages[1], "DSU: Dyre's Shields Up 1.6.1 by Dyre")
     equal(state.messages[2], "DSU:   Ready. Type /dsu to open the settings.")
     equal(#state.messages, 2, "nothing else at login")
     equal(state.toc.Category, "Buffs & Debuffs")
 end)
 test("the welcome follows Dyre's Toolkit's switch; problems always show", function()
-    local BANNER = "DSU: Dyre's Shields Up 1.6.0 by Dyre"
+    local BANNER = "DSU: Dyre's Shields Up 1.6.1 by Dyre"
     -- Shown: no toolkit (then the install line follows), a toolkit without
     -- ShowWelcome, and ShowWelcome true.
     equal(fixture({noToolkit = true}).messages[1], BANNER, "no toolkit")
@@ -1092,6 +1092,7 @@ test("a size change keeps the ring's center and saves its place", function()
     equal(state.suf.db.shield.scale, 150)
     local page = state.categories[PAGE]
     equal(page.buttons[1].buttonText, "Reset size")
+    equal(page.buttons[1].name, "Dyre's Shields Up", "DSU's own page: its own name")
     page.buttons[1].onClick()
     equal(state.suf.db.shield.scale, 100)
     afterX, afterY = state.center(ring)
@@ -1927,7 +1928,17 @@ end)
 test("a host page shows every shield setting, named with the host's prefix", function()
     local state = fixture()
     if not sectionsToolkit(state) then return end
+    -- The host page asks for the section's name on the Reset row (any
+    -- toolkit; one without WIDGET_RESET_NAME ignores it).
+    local resetNames = {}
+    local addWidgetSettings = state.toolkit.AddWidgetSettings
+    state.toolkit.AddWidgetSettings = function(category, layout, widget, opts)
+        resetNames[#resetNames + 1] = opts and opts.resetName or "none"
+        return addWidgetSettings(category, layout, widget, opts)
+    end
     local page, drawn = hostPage(state)
+    state.toolkit.AddWidgetSettings = addWidgetSettings
+    equal(table.concat(resetNames, ","), "Shield display", "resetName on the host page")
     equal(drawn, "rows")
     local names = {}
     for _, initializer in ipairs(page.initializers) do
@@ -1939,6 +1950,10 @@ test("a host page shows every shield setting, named with the host's prefix", fun
         "Shield display, Show the absorb amount, Sound when a shield ends, Sound, Display size, Text size, Icon size")
     equal(#page.buttons, 1, "Reset size")
     equal(page.buttons[1].buttonText, "Reset size")
+    -- The section's one name with a toolkit that can rename the Reset row;
+    -- else the AddOn's title, as the toolkit's own row says.
+    equal(page.buttons[1].name, state.toolkit.WIDGET_RESET_NAME and "Shield display" or "Dyre's Shields Up",
+        "a host page's Reset size row")
     -- DSU's own page keeps its variables as named.
     for _, variable in ipairs({"DSU_SHIELD_ENABLED", "DSU_SHIELD_NUMBER", "DSU_SHIELD_BREAK_SOUND",
             "DSU_SHIELD_BREAK_SOUND_CHOICE", WIDGET_SCALE}) do
@@ -2151,6 +2166,8 @@ test("a host's Shield page drawn before DSU's login greys its own sliders too", 
     if greyButtonLabel then
         equal(greyed[#greyed], rest.buttons[1], "Reset size's label greys with it")
     end
+    equal(rest.buttons[1].name, state.toolkit.WIDGET_RESET_NAME and "Shield display" or "Dyre's Shields Up",
+        "the same name before login")
     state.suf.db.shield.enabled = false
     local rows = rowsByName(rest)
     for _, name in ipairs({"Display size", "Text size", "Icon size"}) do

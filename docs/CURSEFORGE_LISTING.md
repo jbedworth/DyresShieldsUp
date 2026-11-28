@@ -22,7 +22,7 @@ tested.
 
 ## Summary
 
-A crescent beside your character that shows your remaining shield, for any class in World of Warcraft: Forever: Power Word: Shield, Ice Barrier, wards, and any other absorb, also in combat.
+A crescent beside your character that shows how much shield you have left, for any class and any absorb. For WoW: Forever and Classic Era.
 
 ## Screenshots
 
@@ -41,35 +41,43 @@ Per-file changelogs need no manual text: each CI upload uses the version's
 `CHANGELOG.md` section, through `release-notes.md`.
 
 ```markdown
-**Dyre's Shields Up** shows your remaining shield as a crescent beside your character, for any class. It is the one shield display for all of Dyre's AddOns: Mage Tools Forever and Warlock Tools Forever use it too.
+I kept getting surprised when my shield broke. I'd cast a shield, pull, and then have no idea how much of it was left without digging through my buffs. So I made Dyre's Shields Up. It puts a crescent beside your character that fills when a shield lands and drains as it soaks up hits, with the amount right under it. It works for any class, and it's the same shield display that Mage Tools Forever and Warlock Tools Forever use.
 
-### Shield display
-- Fills when a shield lands and drains as it absorbs, with the amount below, also in combat. Drops away the moment the shield is used up, and tiny absorbs (such as a Paladin's Seal of Righteousness) never show.
-- Power Word: Shield in white, Ice Barrier blue, the wards in fire and frost, Warlock shields in purple, and any other absorb in gold.
-- Several shields at once? The crescent shows the total, and a row of icons shows which are up: your own class's shields, then Power Word: Shield and Blessing of Protection.
-- Mana Shield and Paladin bubbles drain with their time left in their own inner crescents.
-- **Display size** grows the crescents from their center (50-150%), while **Text size** and **Icon size** (50-150% each) keep the number and the icons as you like them; **Reset size** puts all three back to 100%.
-- An optional number, and an optional sound when a shield ends, chosen from Dyre's Sounds (which the CurseForge app installs with it).
+### What you get
+- **Live tracking.** The crescent drains with each hit and the number counts down with it, in combat, in battlegrounds, and in boss fights. It disappears the moment the shield breaks.
+- **A color for each shield.** Power Word: Shield is white, Ice Barrier is blue, Fire Ward is orange, and Frost Ward is pale blue. A Warlock's Shadow Ward and Sacrifice are purple, and any other absorb, like a trinket or a potion, is gold.
+- **One total for several shields.** With more than one shield up, the crescent shows them all added together. A row of icons under the number tells you which ones they are, your own class's shields first, then Power Word: Shield and Blessing of Protection. Each icon drops off when its shield breaks.
+- **Timed shields.** Mana Shield and a Paladin's Divine Shield, Divine Protection, and Blessing of Protection don't have an absorb amount, so they drain with their time left instead. Each gets a thinner crescent inside the main one.
+- **No tiny absorbs.** Small ones, like a Paladin's Seal of Righteousness, never show.
+- **Three sizes.** Display size grows or shrinks the crescents, Text size sets the number, and Icon size sets the icons. Reset size puts all three back to 100%.
+- **An optional sound.** Pick a sound from Dyre's Sounds to play when a shield ends or breaks. You can turn the number off too.
+- **One main switch.** Turn off Shield display and everything under it greys out, so you can tell at a glance what's on.
+- **Clicks go through.** While it's locked, your clicks pass right through it to the world. Unlock it to drag it anywhere, and it snaps next to the frames of my other AddOns.
 
-### Proc arcs and sounds moved
-- Since 1.5.0, Dyre's Shields Up shows shields only. The proc arcs and sounds moved to **Dyre's Buff Reminders**, with your choices.
+### If you play a Mage or a Warlock
+Mage Tools Forever and Warlock Tools Forever use this shield display, and the CurseForge app installs Dyre's Shields Up with them. With Dyre's Toolkit 2.17.0 or newer, their Shield pages can show every shield setting as soon as each of them supports it, with the Shield display switch next to their other main switches. The first time Dyre's Shields Up runs on a character, it copies your shield settings from those AddOns once and tells you in chat.
 
-### With Mage Tools Forever or Warlock Tools Forever
-Mage Tools Forever (1.2.0 and later) and Warlock Tools Forever (1.3.0 and later) leave the shield to Dyre's Shields Up, and the CurseForge app installs it with them. The first time Dyre's Shields Up runs on a character, it copies that class's AddOn's shield settings once (place, sizes, the number, and the sound) and says so in chat. Settings Dyre's Shields Up already has are never replaced.
-
-### With Dyre's Toolkit
-Needs Dyre's Toolkit 2.0 or later, which the CurseForge app installs with it: one layout mode for all of Dyre's AddOns. The shield display is a toolkit widget: unlocking unlocks every Dyre's AddOn's frames at once, and the display snaps to their frames and to the grid. Its settings are under Options > AddOns > Dyre's AddOns > Shields Up.
+### Proc arcs moved
+Dyre's Shields Up 1.4 also had proc arcs and sounds for Missile Barrage, Nightfall, Clearcasting, and a few others. They're in Dyre's Buff Reminders now, with your choices kept. Dyre's Shields Up shows only shields.
 
 ### Commands
-- `/dsu` or `/dsu options` opens the settings.
-- `/dsu unlock` and `/dsu lock` unlock and lock every Dyre's AddOn's frames; `/dsu reset` moves the display back to its default place.
-- `/dsu debug_shield` shows diagnostics in chat.
-- `/shieldsup` works the same, in case another AddOn uses `/dsu`.
+- `/dsu` opens the settings.
+- `/dsu unlock` and `/dsu lock` unlock and lock the frames of all my AddOns.
+- `/dsu reset` puts the display back in its default place.
+- `/dsu debug_shield` prints details in chat. Please include them if you report a problem.
+- `/shieldsup` does the same as `/dsu`, in case another AddOn already uses `/dsu`.
+
+### What gets installed with it
+Dyre's Shields Up needs Dyre's Toolkit 2.0 or newer, and the CurseForge app installs it for you, along with Dyre's Sounds. The Toolkit puts the settings for all my AddOns in one place, under Options > AddOns > Dyre's AddOns > Shields Up. One unlock moves every frame at once, and you can copy one profile to your other characters.
 
 ### Compatibility
-For World of Warcraft: Forever 1.60.1 (tested on build 70450). If a client update removes an API it needs, it says so in chat and the display stays off.
+I made it for World of Warcraft: Forever 1.60.1, and it runs on Classic Era 1.15.9 too. Classic Era doesn't tell AddOns how big a shield is, so there the number starts at the shield's base amount for its rank and counts down with each hit. The game also gives AddOns no way to play the end-of-shield sound on Classic Era, so it doesn't play there.
 
-WowUp users (2.24.0 or later): install from the repository URL; GitHub releases carry the Forever metadata WowUp needs.
+WowUp users on 2.24.0 or later can install from the repository URL. The GitHub releases carry the Forever metadata WowUp needs.
 
-Source, issues, and license (MIT): https://github.com/jbedworth/DyresShieldsUp
+Let me know what you think in the comments! If something's broken, you can also open an issue at https://github.com/jbedworth/DyresShieldsUp/issues.
+
+Dyre's AddOns are free. If you enjoy them, you can support them on Ko-fi: https://ko-fi.com/dyre_janelle
+
+Source and license (MIT): https://github.com/jbedworth/DyresShieldsUp
 ```

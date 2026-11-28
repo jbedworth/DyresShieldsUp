@@ -4,6 +4,12 @@ Player-facing changes for each Dyre's Shields Up release, newest first. The
 release builder copies the section for the TOC version into the GitHub release
 notes and the CurseForge changelog, and fails if that section is missing.
 
+## 1.6.1
+
+### Fixes
+
+- On Mage Tools Forever's and Warlock Tools Forever's Shield pages, the Reset size row now says "Shield display", the same name as the rest of the section. It used to say "Dyre's Shields Up".
+
 ## 1.6.0
 
 ### Features

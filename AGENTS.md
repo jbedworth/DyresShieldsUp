@@ -182,7 +182,13 @@ Forever.
   2); with no widget yet on a host page (its login came first), or a version
   1 toolkit, `AddHostSizes`: the same three sliders, the toolkit's variable
   names prefixed, and Reset size, writing through the widget once it exists,
-  else the saved sizes repaired with `SanitizeScale`. The display is the same
+  else the saved sizes repaired with `SanitizeScale`. Do not copy the
+  toolkit's rows for anything else (lead, 2026-11-27: a copy drifts from its
+  default marks, greying, and watch rules). The Reset row's name (1.6.1;
+  John, 2026-11-27, from WTF's page: one name per section, as WTF's Crowd
+  Control page): "Shield display" on a host page (`opts.resetName`, toolkit
+  flag `WIDGET_RESET_NAME`; `HostResetName` for `AddHostSizes`), "Dyre's
+  Shields Up" on DSU's page and with an older toolkit. The display is the same
   for every class, so `ctx.class` and `ctx.filter` change nothing. The build
   returns false (the host shows its link) without the Settings API, before
   the saved settings load, or after DSU's login found it cannot run. Not in

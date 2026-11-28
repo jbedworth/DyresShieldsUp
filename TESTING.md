@@ -106,6 +106,8 @@ carry over:
       display" off, every row under it (and Reset size) is greyed, on DSU's
       page and on the host's Shield page; Sound is greyed also while "Sound
       when a shield ends" is off. Turned on again, they work at once.
+- [ ] Reset size's row label (1.6.1): "Shield display" on MTF's and WTF's
+      Shield pages, "Dyre's Shields Up" on DSU's own page.
 - [ ] Settings: the switches, number, size slider, and break sound work;
       "Unlock to move it" and `/dsu unlock` show the full sample to drag;
       unticking or `/dsu lock` locks it, and the switch and commands stay in
